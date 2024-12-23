@@ -55,7 +55,11 @@ fn push_to_remote(repo: &Repository, remote_name: &str, git_ref: &str) -> Result
     // Find the remote
     let mut remote = repo.find_remote(remote_name)?;
     let token = std::env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
-    let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials("github.com", token, "");
+    let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
+        "github.com",
+        "x-access-token",
+        token,
+    );
 
     if let Err(e) = git_auth.push(repo, &mut remote, &[&format!("{git_ref}:{git_ref}")]) {
         eprintln!("Error: Push failed, does this job have write permissions?");
