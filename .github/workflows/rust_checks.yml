@@ -38,6 +38,7 @@ jobs:
         run: cargo build
 
       - name: Run fake
+        if: ${{ github.event_name }} == pull_request
         env:
           RUST_LOG: DEBUG
           GITHUB_TOKEN: ${{ github.token }}
