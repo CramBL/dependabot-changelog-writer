@@ -88,13 +88,13 @@ mod tests {
     }
 
     #[test]
-    fn parse_example_to_changes() {
+    fn test_parse_example_to_changes() {
         let changes = parse_changes(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER);
         assert_eq!(changes.len(), 2);
     }
 
     #[test]
-    fn parse_example_to_changes_plotinator() {
+    fn test_parse_example_to_changes_plotinator() {
         let changes = parse_changes(EXAMPLE_DEPENDABOT_BODY_PLOTINATOR);
         assert_eq!(changes.len(), 8);
     }

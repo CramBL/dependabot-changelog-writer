@@ -90,6 +90,18 @@ impl Config {
         }
         process::exit(1);
     }
+
+    pub fn commit_signature(&self) -> std::result::Result<Signature, git2::Error> {
+        Signature::now(&self.committer_name, &self.committer_email)
+    }
+
+    pub fn github_token(&self) -> &str {
+        &self.github_token
+    }
+
+    pub fn commit_message(&self) -> &str {
+        &self.commit_message
+    }
 }
 
 fn run() -> Result<()> {
@@ -131,14 +143,11 @@ fn run() -> Result<()> {
 
     let file_path = "example_file.txt";
 
-    // Retrieve the author and committer signatures
-    let signature = Signature::now(&config.committer_name, &config.committer_email)?;
-
     git::add_commit_and_push(
-        &config.github_token,
-        signature,
+        config.github_token(),
+        config.commit_signature()?,
         file_path,
-        &config.commit_message,
+        config.commit_message(),
         "origin",
         git_ref,
     )?;
