@@ -10,9 +10,27 @@ struct DependabotChange<'s> {
 
 pub fn parse_body(body: &str) {
     let changes = parse_changes(body);
-    for change in changes {
+    for change in &changes {
         println!("{:?}", change);
     }
+    println!("{}", format_changes(changes));
+}
+
+fn format_changes<'b>(changes: Vec<DependabotChange<'b>>) -> String {
+    // Start with an empty string to accumulate the formatted result
+    let mut markdown = String::new();
+
+    // Iterate over each change and format it into the markdown string
+    for change in changes {
+        // For each change, add a list item in markdown format
+        markdown.push_str(&format!(
+            "- {}: {} → {}\n",
+            change.name, change.old_version, change.new_version
+        ));
+    }
+
+    // Return the final markdown string
+    markdown
 }
 
 const UPDATE_LINE_KEYWORD: &str = "Updates";
@@ -63,6 +81,11 @@ fn parse_changes<'b>(body: &'b str) -> Vec<DependabotChange<'b>> {
 mod tests {
     use super::*;
     use dependabot_example_bodies::*;
+
+    #[test]
+    fn test_parse_body() {
+        parse_body(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER);
+    }
 
     #[test]
     fn parse_example_to_changes() {
