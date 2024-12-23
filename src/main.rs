@@ -7,6 +7,7 @@ use std::process::ExitCode;
 
 use git2::Signature;
 
+mod dependabot_changes;
 mod git;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -117,6 +118,9 @@ fn run() -> Result<()> {
     } else {
         println!("Pull Request has no body");
     }
+    // 1. Parse body for version changes
+
+    // 2. Locate changelog section and write the changes
 
     let git_ref = event["ref"]
         .as_str()
@@ -126,7 +130,6 @@ fn run() -> Result<()> {
     fs::write("example_file.txt", example_commit)?;
 
     let file_path = "example_file.txt";
-    let commit_message = &config.commit_message;
 
     // Retrieve the author and committer signatures
     let signature = Signature::now(&config.committer_name, &config.committer_email)?;
@@ -135,7 +138,7 @@ fn run() -> Result<()> {
         &config.github_token,
         signature,
         file_path,
-        commit_message,
+        &config.commit_message,
         "origin",
         git_ref,
     )?;
