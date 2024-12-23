@@ -2,29 +2,25 @@ name: dependabot-changelog-writer
 description: Generate a changelog entry from a dependabot PR
 author: Marc Beck König <mbkj@tutamail.com>
 inputs:
-  error:
-    description: 'The error message to display, if any'
-    required: false
-    default: ''
   changelog:
-    description: 'Location of the changelog relative to the project root'
+    description: "Location of the changelog relative to the project root"
     required: false
-    default: './CHANGELOG.md'
+    default: "./CHANGELOG.md"
   commit_message:
-    description: 'The commit message for the changelog entry'
+    description: "The commit message for the changelog entry"
     required: false
-    default: 'Updated changelog with updated dependencies'
+    default: "Updated changelog with updated dependencies"
   token:
-    description: 'The GitHub token to use for downloading the action, defaults to workflow token'
+    description: "The GitHub token to use for downloading the action, defaults to workflow token"
     required: true
     default: ${{ github.token }}
 outputs:
   error:
-    description: 'The description of any error that occurred'
+    description: "The description of any error that occurred"
     value: ${{ steps.run.outputs.error }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Set reusable variables
       shell: bash
@@ -61,4 +57,4 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.error }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}"
