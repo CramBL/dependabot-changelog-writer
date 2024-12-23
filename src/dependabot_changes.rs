@@ -8,12 +8,14 @@ struct DependabotChange<'s> {
     new_version: &'s str,
 }
 
-pub fn parse_body(body: &str) {
+pub fn parse_body(body: &str) -> String {
     let changes = parse_changes(body);
     for change in &changes {
         println!("{:?}", change);
     }
-    println!("{}", format_changes(changes));
+    let changes_md = format_changes(changes);
+    log::debug!("{changes_md}");
+    changes_md
 }
 
 fn format_changes<'b>(changes: Vec<DependabotChange<'b>>) -> String {
@@ -81,10 +83,15 @@ fn parse_changes<'b>(body: &'b str) -> Vec<DependabotChange<'b>> {
 mod tests {
     use super::*;
     use dependabot_example_bodies::*;
+    use pretty_assertions::assert_str_eq;
 
     #[test]
     fn test_parse_body() {
-        parse_body(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER);
+        let changes_md = parse_body(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER);
+        let expect_md = "\
+        - `crate-ci/typos`: 1.27.0 → 1.28.4\n\
+        - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0\n";
+        assert_str_eq!(changes_md, expect_md);
     }
 
     #[test]
@@ -97,5 +104,17 @@ mod tests {
     fn test_parse_example_to_changes_plotinator() {
         let changes = parse_changes(EXAMPLE_DEPENDABOT_BODY_PLOTINATOR);
         assert_eq!(changes.len(), 8);
+
+        let changes_md = format_changes(changes);
+        let expect_md = "\
+        - `serde`: 1.0.215 → 1.0.216\n\
+        - `chrono`: 0.4.38 → 0.4.39\n\
+        - `semver`: 1.0.23 → 1.0.24\n\
+        - `env_logger`: 0.11.5 → 0.11.6\n\
+        - `zip`: 2.2.1 → 2.2.2\n\
+        - `wasm-bindgen-futures`: 0.4.47 → 0.4.49\n\
+        - `web-sys`: 0.3.74 → 0.3.76\n\
+        - `thiserror`: 2.0.4 → 2.0.9\n";
+        assert_str_eq!(changes_md, expect_md);
     }
 }

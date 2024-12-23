@@ -5,10 +5,12 @@ use std::path::PathBuf;
 use std::process;
 use std::process::ExitCode;
 
+use dependabot_changes::parse_body;
 use git2::Signature;
 
 mod dependabot_changes;
 mod git;
+mod changelog;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -126,9 +128,11 @@ fn run() -> Result<()> {
 
     // Extract the PR body
     if let Some(body) = event["pull_request"]["body"].as_str() {
-        println!("Pull Request Body:\n{}", body);
+        log::debug!("Pull Request Body:\n{}", body);
+        let changes_md = parse_body(body);
+
     } else {
-        println!("Pull Request has no body");
+        log::warn!("Pull Request has no body");
     }
     // 1. Parse body for version changes
 
