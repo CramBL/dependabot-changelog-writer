@@ -33,6 +33,8 @@ jobs:
         run: cargo build
 
       - name: Run fake
+        env:
+          RUST_LOG: DEBUG
         run: cargo run -- "CHANGELOG.md" "Some commit message" 
 
   print-event-path:

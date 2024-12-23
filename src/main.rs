@@ -22,7 +22,9 @@ impl Config {
 
         // Take ownership of each argument directly
         let changelog_path_str = args.next().ok_or("Missing changelog path")?;
+        log::debug!("changelog_path_str={changelog_path_str}");
         let commit_message = args.next().ok_or("Missing commit message")?;
+        log::debug!("commit_message={commit_message}");
 
         if args.next().is_some() {
             return Err("Too many arguments provided".into());
@@ -94,7 +96,9 @@ fn run() -> Result<()> {
 
     // Read the event path environment variable
     let event_path = env::var("GITHUB_EVENT_PATH").expect("GITHUB_EVENT_PATH not set");
+    log::debug!("event_path={event_path}");
     let event_path = PathBuf::from(event_path);
+
     if !event_path.is_file() {
         config.exit(&format!(
             "No github event file at: {}",
@@ -104,6 +108,7 @@ fn run() -> Result<()> {
 
     // Read and parse the event file
     let event_json = std::fs::read_to_string(event_path)?;
+    log::debug!("event_json={event_json}");
     let event: serde_json::Value = serde_json::from_str(&event_json)?;
 
     // Extract the PR body
@@ -118,6 +123,7 @@ fn run() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    env_logger::init();
     if let Err(err) = run() {
         if let Ok(github_output_path) = env::var("GITHUB_OUTPUT") {
             Config::exit_with_error(&err.to_string(), &github_output_path);
