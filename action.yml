@@ -58,3 +58,5 @@ runs:
       shell: bash
       id: run
       run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}"
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
