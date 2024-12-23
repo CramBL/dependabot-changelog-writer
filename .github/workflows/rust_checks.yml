@@ -35,9 +35,15 @@ jobs:
       - name: Run fake
         env:
           RUST_LOG: DEBUG
+          GITHUB_TOKEN: ${{ github.token }}
         run: cargo run -- "CHANGELOG.md" "Some commit message" 
 
   print-event-path:
     runs-on: ubuntu-latest
     steps:
-      - run: cat ${{ env.GITHUB_EVENT_PATH }}
+      - uses: actions/checkout@v4
+      - run: |
+          echo ${{ env.GITHUB_EVENT_PATH }} 
+          cat ${{ env.GITHUB_EVENT_PATH }}
+          echo $(<${{ env.GITHUB_EVENT_PATH }})
+
