@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use std::process;
 use std::process::ExitCode;
 
+use git2::Signature;
+
 mod git;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -13,7 +15,10 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 struct Config {
     changelog_path: PathBuf,
     commit_message: String,
+    committer_name: String,
+    committer_email: String,
     github_output_path: String,
+    github_token: String,
 }
 
 impl Config {
@@ -26,12 +31,20 @@ impl Config {
         let commit_message = args.next().ok_or("Missing commit message")?;
         log::debug!("commit_message={commit_message}");
 
+        let committer_name = args.next().ok_or("Missing committer name")?;
+        log::debug!("committer_name={committer_name}");
+
+        let committer_email = args.next().ok_or("Missing committer email")?;
+        log::debug!("committer_email={committer_email}");
+
         if args.next().is_some() {
             return Err("Too many arguments provided".into());
         }
 
         let github_output_path =
-            env::var("GITHUB_OUTPUT").map_err(|_| "GITHUB_OUTPUT environment variable not set")?;
+            env::var("GITHUB_OUTPUT").expect("GITHUB_OUTPUT environment variable not set");
+
+        let github_token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
 
         if changelog_path_str.is_empty() {
             Self::exit_with_error("No changelog path specified", &github_output_path);
@@ -48,7 +61,10 @@ impl Config {
         Ok(Self {
             changelog_path,
             commit_message,
+            committer_name,
+            committer_email,
             github_output_path,
+            github_token,
         })
     }
 
@@ -77,9 +93,6 @@ impl Config {
 
 fn run() -> Result<()> {
     let config = Config::new()?;
-
-    // Get the GitHub token from environment
-    let token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
 
     // Read the event path environment variable
     let event_path = env::var("GITHUB_EVENT_PATH").expect("GITHUB_EVENT_PATH not set");
@@ -112,11 +125,20 @@ fn run() -> Result<()> {
     let example_commit = "example contents";
     fs::write("example_file.txt", example_commit)?;
 
-    let repo_path = ".";
     let file_path = "example_file.txt";
     let commit_message = &config.commit_message;
 
-    git::add_commit_and_push(repo_path, file_path, commit_message, "origin", git_ref)?;
+    // Retrieve the author and committer signatures
+    let signature = Signature::now(&config.committer_name, &config.committer_email)?;
+
+    git::add_commit_and_push(
+        &config.github_token,
+        signature,
+        file_path,
+        commit_message,
+        "origin",
+        git_ref,
+    )?;
 
     Ok(())
 }

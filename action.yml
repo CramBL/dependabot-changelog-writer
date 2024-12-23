@@ -10,6 +10,15 @@ inputs:
     description: "The commit message for the changelog entry"
     required: false
     default: "Updated changelog with updated dependencies"
+  committer_name:
+    description: The name of the custom committer you want to use
+    required: false
+    default: github-actions[bot]
+  committer_email:
+    description: The email of the custom committer you want to use
+    required: false
+    default: github-actions[bot]@users.noreply.github.com
+
   token:
     description: "The GitHub token to use for downloading the action, defaults to workflow token"
     required: true
@@ -57,6 +66,6 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}" "${{ inputs.committer_name }}" "${{ inputs.committer_email }}"
       env:
         GITHUB_TOKEN: ${{ inputs.token }}

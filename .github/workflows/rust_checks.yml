@@ -29,7 +29,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -46,7 +46,7 @@ jobs:
         env:
           RUST_LOG: DEBUG
           GITHUB_TOKEN: ${{ github.token }}
-        run: cargo run -- "CHANGELOG.md" "Some commit message" 
+        run: cargo run -- "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com"
 
   print-event-path:
     runs-on: ubuntu-latest

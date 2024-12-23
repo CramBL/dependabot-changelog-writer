@@ -1,19 +1,20 @@
 use auth_git2::GitAuthenticator;
-use git2::{Credentials, Direction, RemoteCallbacks, Repository, Signature};
+use git2::{Repository, Signature};
 use std::error::Error;
 use std::path::Path;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 pub fn add_commit_and_push(
-    repo_path: &str,
+    github_token: &str,
+    signature: Signature,
     file_path: &str,
     commit_message: &str,
     remote_name: &str,
     git_ref: &str,
 ) -> Result<()> {
     // Open the repository
-    let repo = Repository::open(repo_path)?;
+    let repo = Repository::open(".")?;
 
     // Get the index
     let mut index = repo.index()?;
@@ -30,9 +31,6 @@ pub fn add_commit_and_push(
     let head_ref = repo.head()?;
     let head_commit = head_ref.peel_to_commit()?;
 
-    // Retrieve the author and committer signatures
-    let signature = Signature::now("Your Name", "your.email@example.com")?;
-
     // Create the commit
     repo.commit(
         Some("HEAD"),    // Update the HEAD reference
@@ -46,20 +44,24 @@ pub fn add_commit_and_push(
     println!("Successfully committed: {commit_message}");
 
     // Push changes to the remote
-    push_to_remote(&repo, remote_name, git_ref)?;
+    push_to_remote(github_token, &repo, remote_name, git_ref)?;
 
     Ok(())
 }
 
-fn push_to_remote(repo: &Repository, remote_name: &str, git_ref: &str) -> Result<()> {
-    // Find the remote
-    let mut remote = repo.find_remote(remote_name)?;
-    let token = std::env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
+fn push_to_remote(
+    github_token: &str,
+    repo: &Repository,
+    remote_name: &str,
+    git_ref: &str,
+) -> Result<()> {
     let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
         "github.com",
         "x-access-token",
-        token,
+        github_token,
     );
+
+    let mut remote = repo.find_remote(remote_name)?;
 
     if let Err(e) = git_auth.push(repo, &mut remote, &[&format!("{git_ref}:{git_ref}")]) {
         eprintln!("Error: Push failed, does this job have write permissions?");
