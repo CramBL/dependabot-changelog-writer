@@ -18,3 +18,24 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --check
+
+  test-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build
+
+      - name: Run fake
+        run: cargo run -- "CHANGELOG.md" "Some commit message" 
+
+  print-event-path:
+    runs-on: ubuntu-latest
+    steps:
+      - run: cat ${{ env.GITHUB_EVENT_PATH }}
