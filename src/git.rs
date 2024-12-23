@@ -10,7 +10,7 @@ pub fn add_commit_and_push(
     file_path: &str,
     commit_message: &str,
     remote_name: &str,
-    branch_name: &str,
+    git_ref: &str,
 ) -> Result<()> {
     // Open the repository
     let repo = Repository::open(repo_path)?;
@@ -46,25 +46,19 @@ pub fn add_commit_and_push(
     println!("Successfully committed: {commit_message}");
 
     // Push changes to the remote
-    push_to_remote(&repo, remote_name, branch_name)?;
+    push_to_remote(&repo, remote_name, git_ref)?;
 
     Ok(())
 }
 
-fn push_to_remote(repo: &Repository, remote_name: &str, branch_name: &str) -> Result<()> {
+fn push_to_remote(repo: &Repository, remote_name: &str, git_ref: &str) -> Result<()> {
     // Find the remote
     let mut remote = repo.find_remote(remote_name)?;
     let git_auth = GitAuthenticator::default();
 
-    git_auth.push(
-        repo,
-        &mut remote,
-        &[&format!(
-            "refs/heads/{branch_name}:refs/heads/{branch_name}",
-        )],
-    )?;
+    git_auth.push(repo, &mut remote, &[&format!("{git_ref}:{git_ref}")])?;
 
-    println!("Successfully pushed to remote '{}'", remote_name);
+    println!("Successfully pushed to remote '{remote_name}'");
 
     Ok(())
 }

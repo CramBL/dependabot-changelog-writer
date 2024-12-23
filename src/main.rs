@@ -105,7 +105,7 @@ fn run() -> Result<()> {
         println!("Pull Request has no body");
     }
 
-    let branch_name = event["pull_request"]["head"]["ref"]
+    let git_ref = event["commits"]["ref"]
         .as_str()
         .ok_or("Branch name not found in event JSON")?;
 
@@ -116,7 +116,7 @@ fn run() -> Result<()> {
     let file_path = "example_file.txt";
     let commit_message = &config.commit_message;
 
-    git::add_commit_and_push(repo_path, file_path, commit_message, "origin", branch_name)?;
+    git::add_commit_and_push(repo_path, file_path, commit_message, "origin", git_ref)?;
 
     Ok(())
 }
