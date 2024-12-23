@@ -2,6 +2,10 @@ name: dependabot-changelog-writer
 description: Generate a changelog entry from a dependabot PR
 author: Marc Beck König <mbkj@tutamail.com>
 inputs:
+  version:
+    description: "The version/H1 header to find in the CHANGELOG to add dependabot entries to"
+    required: true
+    default: "unreleased"
   changelog:
     description: "Location of the changelog relative to the project root"
     required: false
@@ -18,6 +22,10 @@ inputs:
     description: The email of the custom committer you want to use
     required: false
     default: github-actions[bot]@users.noreply.github.com
+  section_header:
+    description: The section header to add the changelog entry under
+    required: false
+    default: "Dependencies"
 
   token:
     description: "The GitHub token to use for downloading the action, defaults to workflow token"
@@ -66,6 +74,6 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}" "${{ inputs.committer_name }}" "${{ inputs.committer_email }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}" "${{ inputs.committer_name }}" "${{ inputs.committer_email }}" "${{ inputs.version }}" "${{ inputs.section_header }}"
       env:
         GITHUB_TOKEN: ${{ inputs.token }}

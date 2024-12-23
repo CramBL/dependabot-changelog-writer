@@ -19,6 +19,10 @@ pub fn parse_body(body: &str) -> String {
 }
 
 fn format_changes<'b>(changes: Vec<DependabotChange<'b>>) -> String {
+    if changes.is_empty() {
+        return String::new();
+    }
+
     // Start with an empty string to accumulate the formatted result
     let mut markdown = String::new();
 

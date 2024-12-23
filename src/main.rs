@@ -1,16 +1,17 @@
-use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 use std::process;
 use std::process::ExitCode;
+use std::{env, io};
 
+use changelog::add_changes_to_changelog_contents;
 use dependabot_changes::parse_body;
 use git2::Signature;
 
+mod changelog;
 mod dependabot_changes;
 mod git;
-mod changelog;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -20,6 +21,8 @@ struct Config {
     commit_message: String,
     committer_name: String,
     committer_email: String,
+    version_header: String,
+    section_header: String,
     github_output_path: String,
     github_token: String,
 }
@@ -39,6 +42,12 @@ impl Config {
 
         let committer_email = args.next().ok_or("Missing committer email")?;
         log::debug!("committer_email={committer_email}");
+
+        let version_header = args.next().ok_or("Missing section header")?;
+        log::debug!("version_header={version_header}");
+
+        let section_header = args.next().ok_or("Missing section header")?;
+        log::debug!("section_header={section_header}");
 
         if args.next().is_some() {
             return Err("Too many arguments provided".into());
@@ -66,6 +75,8 @@ impl Config {
             commit_message,
             committer_name,
             committer_email,
+            version_header,
+            section_header,
             github_output_path,
             github_token,
         })
@@ -104,6 +115,22 @@ impl Config {
     pub fn commit_message(&self) -> &str {
         &self.commit_message
     }
+
+    pub fn version_header(&self) -> &str {
+        &self.version_header
+    }
+
+    pub fn section_header(&self) -> &str {
+        &self.section_header
+    }
+
+    pub fn read_changelog(&self) -> io::Result<String> {
+        fs::read_to_string(&self.changelog_path)
+    }
+
+    pub fn write_changelog(&self, contents: String) -> io::Result<()> {
+        fs::write(&self.changelog_path, contents)
+    }
 }
 
 fn run() -> Result<()> {
@@ -130,7 +157,14 @@ fn run() -> Result<()> {
     if let Some(body) = event["pull_request"]["body"].as_str() {
         log::debug!("Pull Request Body:\n{}", body);
         let changes_md = parse_body(body);
-
+        let mut changelog_contents = config.read_changelog()?;
+        add_changes_to_changelog_contents(
+            changes_md,
+            &mut changelog_contents,
+            config.version_header(),
+            config.section_header(),
+        );
+        config.write_changelog(changelog_contents)?;
     } else {
         log::warn!("Pull Request has no body");
     }
