@@ -105,7 +105,7 @@ fn run() -> Result<()> {
         println!("Pull Request has no body");
     }
 
-    let git_ref = event["commits"]["ref"]
+    let git_ref = event["ref"]
         .as_str()
         .ok_or("Branch name not found in event JSON")?;
 
