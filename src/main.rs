@@ -5,8 +5,6 @@ use std::path::PathBuf;
 use std::process;
 use std::process::ExitCode;
 
-use octocrab::Octocrab;
-
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
@@ -75,24 +73,11 @@ impl Config {
     }
 }
 
-struct GitHubApi {
-    octocrab: Octocrab,
-}
-
-impl GitHubApi {
-    pub fn new(github_token: String) -> Result<Self> {
-        let octocrab = Octocrab::builder().personal_token(github_token).build()?;
-
-        Ok(Self { octocrab })
-    }
-}
-
 fn run() -> Result<()> {
     let config = Config::new()?;
 
     // Get the GitHub token from environment
     let token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
-    let github_api = GitHubApi::new(token)?;
 
     // Read the event path environment variable
     let event_path = env::var("GITHUB_EVENT_PATH").expect("GITHUB_EVENT_PATH not set");
@@ -121,8 +106,7 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> ExitCode {
+fn main() -> ExitCode {
     env_logger::init();
     if let Err(err) = run() {
         if let Ok(github_output_path) = env::var("GITHUB_OUTPUT") {
