@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use std::process;
 use std::process::ExitCode;
 
+mod git;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
@@ -102,6 +104,19 @@ fn run() -> Result<()> {
     } else {
         println!("Pull Request has no body");
     }
+
+    let branch_name = event["pull_request"]["head"]["ref"]
+        .as_str()
+        .ok_or("Branch name not found in event JSON")?;
+
+    let example_commit = "example contents";
+    fs::write("example_file.txt", example_commit)?;
+
+    let repo_path = ".";
+    let file_path = "example_file.txt";
+    let commit_message = &config.commit_message;
+
+    git::add_commit_and_push(repo_path, file_path, commit_message, "origin", branch_name)?;
 
     Ok(())
 }
