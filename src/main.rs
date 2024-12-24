@@ -19,6 +19,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
 struct Config {
+    dry_run: bool,
     changelog_path: PathBuf,
     commit_message: String,
     committer_name: String,
@@ -33,9 +34,17 @@ impl Config {
     pub fn new() -> Result<Self> {
         let mut args = env::args().skip(1);
 
-        // Take ownership of each argument directly
-        let changelog_path_str = args.next().ok_or("Missing changelog path")?;
+        let first_arg = args.next().ok_or("Missing changelog path")?;
+        let dry_run = first_arg == "--dry-run";
+        log::debug!("dry_run={dry_run}");
+
+        let changelog_path_str = if dry_run {
+            args.next().ok_or("Missing changelog path")?
+        } else {
+            first_arg
+        };
         log::debug!("changelog_path_str={changelog_path_str}");
+
         let commit_message = args.next().ok_or("Missing commit message")?;
         log::debug!("commit_message={commit_message}");
 
@@ -73,6 +82,7 @@ impl Config {
         }
 
         Ok(Self {
+            dry_run,
             changelog_path,
             commit_message,
             committer_name,
@@ -167,16 +177,23 @@ fn run() -> Result<()> {
             config.version_header(),
             config.section_header(),
         );
-        config.write_changelog(changelog_contents)?;
-        git::add_commit_and_push(
-            config.github_token(),
-            config.commit_signature()?,
-            config.changelog_path(),
-            config.commit_message(),
-            "origin",
-            event.branch_ref(),
-            event.branch_name(),
-        )?;
+        if config.dry_run {
+            log::debug!("Dry run: Skipping commit");
+            let orig_changelog = fs::read_to_string(config.changelog_path())?;
+            let changeset = difference::Changeset::new(&orig_changelog, &changelog_contents, "\n");
+            log::info!("{changeset}");
+        } else {
+            config.write_changelog(changelog_contents)?;
+            git::add_commit_and_push(
+                config.github_token(),
+                config.commit_signature()?,
+                config.changelog_path(),
+                config.commit_message(),
+                "origin",
+                event.branch_ref(),
+                event.branch_name(),
+            )?;
+        }
     } else {
         log::warn!("Pull request body is empty");
     }
