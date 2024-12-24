@@ -13,14 +13,14 @@ impl GithubEvent {
         let event: serde_json::Value =
             serde_json::from_str(&event_json).map_err(|e| format!("Malformed event JSON: {e}"))?;
 
-        let branch_ref = event["ref"]
-            .as_str()
-            .unwrap_or_else(|| {
-                event["pull_request"]["head"]["ref"]
-                    .as_str()
-                    .expect("Branch name not found in event JSON")
-            })
-            .to_owned();
+        let branch_ref = if let Some(branch_ref) = event["ref"].as_str() {
+            branch_ref.to_owned()
+        } else {
+            let branch_name = event["pull_request"]["head"]["ref"]
+                .as_str()
+                .expect("Branch name not found in event JSON");
+            format!("refs/heads/{branch_name}")
+        };
 
         let pr_body = if let Some(pr_body) = event["pull_request"]["body"].as_str() {
             Some(pr_body.to_owned())
