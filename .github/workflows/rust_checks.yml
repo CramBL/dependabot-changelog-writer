@@ -88,7 +88,7 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Build
+      - name: Build ${{ matrix.target }}
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: cargo build --release --target ${{ matrix.target }}
         env:
@@ -96,7 +96,15 @@ jobs:
          OPENSSL_STATIC: true
          OPENSSL_DIR: /musl
 
-      - name: Build
+      - name: Build ${{ matrix.target }}
+        if: ${{ matrix.target == 'x86_64-apple-darwin' }}
+        run: |
+          brew install openssl
+          export OPENSSL_INCLUDE_DIR=$(brew --prefix openssl)/include
+          export OPENSSL_LIB_DIR=$(brew --prefix openssl)/lib
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Build ${{ matrix.target }}
         if: ${{ matrix.target != 'x86_64-unknown-linux-musl' }}
         run: cargo build --release --target ${{ matrix.target }}
-         
+
