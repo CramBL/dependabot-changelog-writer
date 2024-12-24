@@ -174,9 +174,11 @@ fn run() -> Result<()> {
         log::warn!("Pull Request has no body");
     }
 
-    let git_ref = event["ref"]
-        .as_str()
-        .ok_or("Branch name not found in event JSON")?;
+    let git_ref = event["ref"].as_str().unwrap_or_else(|| {
+        event["head"]["ref"]
+            .as_str()
+            .expect("Branch name not found in event JSON")
+    });
 
     git::add_commit_and_push(
         config.github_token(),
