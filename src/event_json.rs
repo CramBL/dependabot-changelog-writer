@@ -24,7 +24,7 @@ impl GithubEvent {
         };
 
         let branch_name = branch_ref
-            .strip_prefix("refs/heads")
+            .strip_prefix("refs/heads/")
             .expect("Unexpected branch ref prefix")
             .to_owned();
 
