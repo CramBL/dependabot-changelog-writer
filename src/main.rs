@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::process::ExitCode;
 use std::{env, io};
@@ -124,6 +124,10 @@ impl Config {
         &self.section_header
     }
 
+    pub fn changelog_path(&self) -> &Path {
+        &self.changelog_path
+    }
+
     pub fn read_changelog(&self) -> io::Result<String> {
         fs::read_to_string(&self.changelog_path)
     }
@@ -174,15 +178,10 @@ fn run() -> Result<()> {
         .as_str()
         .ok_or("Branch name not found in event JSON")?;
 
-    let example_commit = "example contents";
-    fs::write("example_file.txt", example_commit)?;
-
-    let file_path = "example_file.txt";
-
     git::add_commit_and_push(
         config.github_token(),
         config.commit_signature()?,
-        file_path,
+        config.changelog_path(),
         config.commit_message(),
         "origin",
         git_ref,

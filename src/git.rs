@@ -8,7 +8,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 pub fn add_commit_and_push(
     github_token: &str,
     signature: Signature,
-    file_path: &str,
+    file_path: &Path,
     commit_message: &str,
     remote_name: &str,
     git_ref: &str,
