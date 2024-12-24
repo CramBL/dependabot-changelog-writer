@@ -77,15 +77,12 @@ fn push_to_remote(
         "x-access-token",
         github_token,
     );
-
     let mut remote = repo.find_remote(remote_name)?;
 
-    if let Err(e) = git_auth.push(repo, &mut remote, &[&format!("{git_ref}:{git_ref}")]) {
+    if let Err(e) = git_auth.push(repo, &mut remote, &[&format!("HEAD:{git_ref}")]) {
         eprintln!("Error: Push failed, does this job have write permissions?");
         return Err(e.into());
     }
-
     println!("Successfully pushed to remote '{remote_name}'");
-
     Ok(())
 }
