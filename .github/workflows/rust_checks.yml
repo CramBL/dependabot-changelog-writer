@@ -45,4 +45,4 @@ jobs:
         env:
           RUST_LOG: DEBUG
           GITHUB_TOKEN: ${{ github.token }}
-        run: cargo run -- "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "version header 2" "section header 3"
+        run: cargo run -- "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3"
