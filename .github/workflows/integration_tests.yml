@@ -20,7 +20,7 @@ jobs:
         continue-on-error: true
         uses: ./
         with:
-          error: "This is an error"
+          changelog: doesnt_exist.txt
 
       - name: Verify failure
         if: steps.test.outputs.error != ''
