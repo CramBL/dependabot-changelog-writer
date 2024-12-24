@@ -28,11 +28,9 @@ impl GithubEvent {
             .expect("Unexpected branch ref prefix")
             .to_owned();
 
-        let pr_body = if let Some(pr_body) = event["pull_request"]["body"].as_str() {
-            Some(pr_body.to_owned())
-        } else {
-            None
-        };
+        let pr_body = event["pull_request"]["body"]
+            .as_str()
+            .map(|pr_body| pr_body.to_owned());
 
         Ok(Self {
             branch_ref,

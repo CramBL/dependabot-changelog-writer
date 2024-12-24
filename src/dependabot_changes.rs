@@ -11,7 +11,7 @@ struct DependabotChange<'s> {
 pub fn parse_body(body: &str) -> String {
     let changes = parse_changes(body);
     for change in &changes {
-        println!("{:?}", change);
+        log::debug!("{:?}", change);
     }
     let changes_md = format_changes(changes);
     log::debug!("{changes_md}");
