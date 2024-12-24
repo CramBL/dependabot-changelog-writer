@@ -3,7 +3,7 @@ use std::path::PathBuf;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub struct GithubEvent {
     branch_ref: String,
-    pr_body: String,
+    pr_body: Option<String>,
 }
 
 impl GithubEvent {
@@ -22,7 +22,11 @@ impl GithubEvent {
             })
             .to_owned();
 
-        let pr_body = event["pull_request"]["body"].to_string();
+        let pr_body = if let Some(pr_body) = event["pull_request"]["body"].as_str() {
+            Some(pr_body.to_owned())
+        } else {
+            None
+        };
 
         Ok(Self {
             branch_ref,
@@ -34,7 +38,7 @@ impl GithubEvent {
         &self.branch_ref
     }
 
-    pub fn pr_body(&self) -> &str {
-        &self.pr_body
+    pub fn pr_body(&self) -> Option<&str> {
+        self.pr_body.as_deref()
     }
 }

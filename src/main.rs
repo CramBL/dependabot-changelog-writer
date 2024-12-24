@@ -157,10 +157,7 @@ fn run() -> Result<()> {
     // Read and parse the event file
     let event = GithubEvent::new(event_path)?;
 
-    if event.pr_body().is_empty() {
-        log::warn!("Pull request body is empty");
-    } else {
-        let pr_body = event.pr_body();
+    if let Some(pr_body) = event.pr_body() {
         log::debug!("Pull Request Body:\n{pr_body}");
         let changes_md = parse_body(pr_body);
         let mut changelog_contents = config.read_changelog()?;
@@ -179,6 +176,8 @@ fn run() -> Result<()> {
             "origin",
             event.branch_ref(),
         )?;
+    } else {
+        log::warn!("Pull request body is empty");
     }
 
     Ok(())
