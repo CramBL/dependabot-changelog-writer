@@ -179,7 +179,7 @@ fn run() -> Result<()> {
         );
         if config.dry_run {
             log::debug!("Dry run: Skipping commit");
-            let orig_changelog = fs::read_to_string(config.changelog_path())?;
+            let orig_changelog = config.read_changelog()?;
             let changeset = difference::Changeset::new(&orig_changelog, &changelog_contents, "\n");
             log::info!("{changeset}");
         } else {
