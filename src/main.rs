@@ -7,10 +7,12 @@ use std::{env, io};
 
 use changelog::add_changes_to_changelog_contents;
 use dependabot_changes::parse_body;
+use event_json::GithubEvent;
 use git2::Signature;
 
 mod changelog;
 mod dependabot_changes;
+mod event_json;
 mod git;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -153,15 +155,14 @@ fn run() -> Result<()> {
     }
 
     // Read and parse the event file
-    let event_json = std::fs::read_to_string(event_path)?;
-    log::debug!("event_json={event_json}");
-    let event: serde_json::Value =
-        serde_json::from_str(&event_json).map_err(|e| format!("Malformed event JSON: {e}"))?;
+    let event = GithubEvent::new(event_path)?;
 
-    // Extract the PR body
-    if let Some(body) = event["pull_request"]["body"].as_str() {
-        log::debug!("Pull Request Body:\n{}", body);
-        let changes_md = parse_body(body);
+    if event.pr_body().is_empty() {
+        log::warn!("Pull request body is empty");
+    } else {
+        let pr_body = event.pr_body();
+        log::debug!("Pull Request Body:\n{pr_body}");
+        let changes_md = parse_body(pr_body);
         let mut changelog_contents = config.read_changelog()?;
         add_changes_to_changelog_contents(
             changes_md,
@@ -170,24 +171,15 @@ fn run() -> Result<()> {
             config.section_header(),
         );
         config.write_changelog(changelog_contents)?;
-    } else {
-        log::warn!("Pull Request has no body");
+        git::add_commit_and_push(
+            config.github_token(),
+            config.commit_signature()?,
+            config.changelog_path(),
+            config.commit_message(),
+            "origin",
+            event.branch_ref(),
+        )?;
     }
-
-    let git_ref = event["ref"].as_str().unwrap_or_else(|| {
-        event["head"]["ref"]
-            .as_str()
-            .expect("Branch name not found in event JSON")
-    });
-
-    git::add_commit_and_push(
-        config.github_token(),
-        config.commit_signature()?,
-        config.changelog_path(),
-        config.commit_message(),
-        "origin",
-        git_ref,
-    )?;
 
     Ok(())
 }
