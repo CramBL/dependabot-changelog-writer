@@ -151,7 +151,8 @@ fn run() -> Result<()> {
     // Read and parse the event file
     let event_json = std::fs::read_to_string(event_path)?;
     log::debug!("event_json={event_json}");
-    let event: serde_json::Value = serde_json::from_str(&event_json)?;
+    let event: serde_json::Value =
+        serde_json::from_str(&event_json).map_err(|e| format!("Malformed event JSON: {e}"))?;
 
     // Extract the PR body
     if let Some(body) = event["pull_request"]["body"].as_str() {
@@ -168,9 +169,6 @@ fn run() -> Result<()> {
     } else {
         log::warn!("Pull Request has no body");
     }
-    // 1. Parse body for version changes
-
-    // 2. Locate changelog section and write the changes
 
     let git_ref = event["ref"]
         .as_str()

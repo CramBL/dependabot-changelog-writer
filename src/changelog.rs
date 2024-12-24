@@ -12,7 +12,7 @@ pub fn add_changes_to_changelog_contents(
     // the size of the existing content
     changelog_content.reserve(changes_md.len() + h3_header.len());
 
-    let h2_insert_pos = find_h2_insert_position(&changelog_content, version_header)
+    let h2_insert_pos = find_h2_insert_position(changelog_content, version_header)
         .expect("Could not find the specified version h2 header");
 
     if let Some(existing_h3_insert_pos) =
@@ -25,9 +25,7 @@ pub fn add_changes_to_changelog_contents(
 
         // Insert a leading newline if we are not inserting the header just after two newline
         let prev_two_chars = &changelog_content[insert_pos - 2..insert_pos];
-        eprintln!("prev_two_chars={prev_two_chars}");
         if prev_two_chars != "\n\n" {
-            eprintln!("inserting newline");
             h3_header.insert(0, '\n');
         }
         h3_header.push('\n');
@@ -40,11 +38,8 @@ pub fn add_changes_to_changelog_contents(
 fn find_h2_insert_position(changelog_content: &str, version: &str) -> Option<usize> {
     let mut content_pos = 0;
     for l in changelog_content.split_inclusive('\n') {
-        eprintln!("Content pos: {content_pos}");
-        if l.starts_with("##") {
-            if l[2..].contains(version) {
-                return Some(content_pos + l.len());
-            }
+        if l.starts_with("##") && l[2..].contains(version) {
+            return Some(content_pos + l.len());
         }
 
         content_pos += l.len();

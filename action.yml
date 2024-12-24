@@ -2,10 +2,6 @@ name: dependabot-changelog-writer
 description: Generate a changelog entry from a dependabot PR
 author: Marc Beck König <mbkj@tutamail.com>
 inputs:
-  version:
-    description: "The version/H1 header to find in the CHANGELOG to add dependabot entries to"
-    required: true
-    default: "unreleased"
   changelog:
     description: "Location of the changelog relative to the project root"
     required: false
@@ -22,6 +18,10 @@ inputs:
     description: The email of the custom committer you want to use
     required: false
     default: github-actions[bot]@users.noreply.github.com
+  version:
+    description: "The version/H1 header to find in the CHANGELOG to add dependabot entries to"
+    required: true
+    default: "unreleased"
   section_header:
     description: The section header to add the changelog entry under
     required: false

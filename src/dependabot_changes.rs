@@ -18,7 +18,7 @@ pub fn parse_body(body: &str) -> String {
     changes_md
 }
 
-fn format_changes<'b>(changes: Vec<DependabotChange<'b>>) -> String {
+fn format_changes(changes: Vec<DependabotChange>) -> String {
     if changes.is_empty() {
         return String::new();
     }
@@ -46,7 +46,7 @@ const fn from_version_character_pos() -> usize {
     UPDATE_LINE_KEYWORD.len() + 1
 }
 
-fn parse_changes<'b>(body: &'b str) -> Vec<DependabotChange<'b>> {
+fn parse_changes(body: &str) -> Vec<DependabotChange> {
     let mut changes = Vec::new();
 
     // Split the body into lines
