@@ -1,5 +1,10 @@
 name: Unit tests, linting, and formatting
-on: [push]
+
+on:
+  push:
+  pull_request:
+    types: [opened, reopened]
+
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -21,6 +26,9 @@ jobs:
 
   test-run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up Rust
@@ -33,14 +41,8 @@ jobs:
         run: cargo build
 
       - name: Run fake
+        if: ${{ github.event_name }} == pull_request
         env:
           RUST_LOG: DEBUG
           GITHUB_TOKEN: ${{ github.token }}
-        run: cargo run -- "CHANGELOG.md" "Some commit message" 
-
-  print-event-path:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: print env
-        run: env
+        run: cargo run -- --dry-run "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3"

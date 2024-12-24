@@ -5,9 +5,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+auth-git2 = "0.5.5"
+difference = "2.0.0"
 env_logger = "0.11.6"
+git2 = "0.19.0"
 log = "0.4.22"
-octocrab = "0.42.1"
 serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.134"
-tokio = { version = "1.42.0", features = ["full"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
