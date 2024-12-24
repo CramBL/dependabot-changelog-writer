@@ -73,8 +73,13 @@ jobs:
       - name: Create Archive Folder
         run: mkdir ${{ runner.os }}
 
-      - name: Copy Artifact
+      - name: Copy Artifact Windows/MacOs
+        if: ${{ matrix.os != 'ubuntu-latest' }}
         run: cp target/release/${{ env.binary_name }} ${{ runner.os }}
+
+      - name: Copy Artifact Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: cp target/x86_64-unknown-linux-musl/release/${{ env.binary_name }} ${{ runner.os }}
 
       - name: Create Tar Archive
         run: tar -czf ${{ runner.os }}.tgz ${{ runner.os }}
