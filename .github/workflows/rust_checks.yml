@@ -51,26 +51,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            file_extension: .exe
+          os: [ ubuntu-latest, macos-latest, windows-latest ]
 
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install host target
-        run: rustup target add ${{ matrix.target }}
+      - name: Install musl target
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: rustup target add x86_64-unknown-linux-musl
 
       - name: Install musl-tools
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools libssl-dev
@@ -88,23 +81,22 @@ jobs:
           make -j$(nproc)
           make install
 
-      - name: Build ${{ matrix.target }}
-        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build linux musl
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: cargo build --release --target x86_64-unknown-linux-musl
         env:
          PKG_CONFIG_ALLOW_CROSS: 1
          OPENSSL_STATIC: true
          OPENSSL_DIR: /musl
 
-      - name: Build ${{ matrix.target }}
-        if: ${{ matrix.target == 'x86_64-apple-darwin' }}
+      - name: Build macos
+        if: ${{ matrix.os == 'macos-latest' }}
         run: |
-          brew install openssl
           export OPENSSL_INCLUDE_DIR=$(brew --prefix openssl)/include
           export OPENSSL_LIB_DIR=$(brew --prefix openssl)/lib
-          cargo build --release --target ${{ matrix.target }}
+          cargo build --release
 
-      - name: Build ${{ matrix.target }}
-        if: ${{ matrix.target != 'x86_64-unknown-linux-musl' }}
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Build windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: cargo build --release
 
