@@ -3,6 +3,7 @@ use std::path::PathBuf;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub struct GithubEvent {
     branch_ref: String,
+    branch_name: String,
     pr_body: Option<String>,
 }
 
@@ -22,6 +23,11 @@ impl GithubEvent {
             format!("refs/heads/{branch_name}")
         };
 
+        let branch_name = branch_ref
+            .strip_prefix("refs/heads")
+            .expect("Unexpected branch ref prefix")
+            .to_owned();
+
         let pr_body = if let Some(pr_body) = event["pull_request"]["body"].as_str() {
             Some(pr_body.to_owned())
         } else {
@@ -30,12 +36,17 @@ impl GithubEvent {
 
         Ok(Self {
             branch_ref,
+            branch_name,
             pr_body,
         })
     }
 
     pub fn branch_ref(&self) -> &str {
         &self.branch_ref
+    }
+
+    pub fn branch_name(&self) -> &str {
+        &self.branch_name
     }
 
     pub fn pr_body(&self) -> Option<&str> {

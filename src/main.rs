@@ -175,6 +175,7 @@ fn run() -> Result<()> {
             config.commit_message(),
             "origin",
             event.branch_ref(),
+            event.branch_name(),
         )?;
     } else {
         log::warn!("Pull request body is empty");
