@@ -11,10 +11,27 @@ pub fn add_commit_and_push(
     file_path: &Path,
     commit_message: &str,
     remote_name: &str,
-    git_ref: &str,
+    branch_ref: &str,
+    branch_name: &str,
 ) -> Result<()> {
     // Open the repository
     let repo = Repository::open(".")?;
+
+    // Fetch the remote branch first to ensure we have it locally
+    let mut remote = repo.find_remote(remote_name)?;
+    let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
+        "github.com",
+        "x-access-token",
+        github_token,
+    );
+    git_auth.fetch(
+        &repo,
+        &mut remote,
+        &[&format!(
+            "refs/heads/{branch_name}:refs/remotes/{remote_name}/{branch_name}"
+        )],
+        None,
+    )?;
 
     // Get the index
     let mut index = repo.index()?;
@@ -44,7 +61,7 @@ pub fn add_commit_and_push(
     println!("Successfully committed: {commit_message}");
 
     // Push changes to the remote
-    push_to_remote(github_token, &repo, remote_name, git_ref)?;
+    push_to_remote(github_token, &repo, remote_name, branch_ref)?;
 
     Ok(())
 }
