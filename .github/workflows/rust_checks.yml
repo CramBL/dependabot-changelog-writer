@@ -46,3 +46,33 @@ jobs:
           RUST_LOG: DEBUG
           GITHUB_TOKEN: ${{ github.token }}
         run: cargo run -- --dry-run "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3"
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            file_extension: .exe
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install host target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install musl-tools
+        if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
+        run: sudo apt-get install -y musl-tools
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
