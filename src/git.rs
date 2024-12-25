@@ -3,8 +3,6 @@ use git2::{Remote, Repository};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
-use crate::Config;
-
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 // Sanitize the path such that we can add it to the repo git index
@@ -18,7 +16,7 @@ fn sanitize_path(file_path: &Path) -> Result<PathBuf> {
 }
 
 pub fn add_commit_and_push(
-    config: &Config,
+    config: &crate::config::Config,
     remote_name: &str,
     branch_ref: &str,
     branch_name: &str,
