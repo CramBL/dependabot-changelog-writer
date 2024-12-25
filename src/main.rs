@@ -35,10 +35,10 @@ fn run() -> Result<()> {
 
     if let Some(pr_body) = event.pr_body() {
         log::debug!("Pull Request Body:\n{pr_body}");
-        let changes_md = parse_body(pr_body);
+        let changes = parse_body(pr_body);
         let mut changelog_contents = config.read_changelog()?;
         add_changes_to_changelog_contents(
-            changes_md,
+            changes,
             &mut changelog_contents,
             config.version_header(),
             config.section_header(),

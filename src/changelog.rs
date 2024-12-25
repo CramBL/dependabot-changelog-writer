@@ -1,9 +1,12 @@
+use crate::dependabot_changes::{format_changes, DependabotChange};
+
 pub fn add_changes_to_changelog_contents(
-    changes_md: String,
+    changes: Vec<DependabotChange>,
     changelog_content: &mut String,
     version_header: &str,
     section_header: &str,
 ) {
+    let changes_md = format_changes(changes);
     debug_assert!(!changes_md.starts_with("\n\n"));
     debug_assert!(!changes_md.ends_with("\n\n"));
 

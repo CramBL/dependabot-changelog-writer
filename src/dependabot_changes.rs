@@ -2,23 +2,33 @@
 mod dependabot_example_bodies;
 
 #[derive(Debug)]
-struct DependabotChange<'s> {
-    name: &'s str,
-    old_version: &'s str,
-    new_version: &'s str,
+pub struct DependabotChange<'s> {
+    pub name: &'s str,
+    pub old_version: &'s str,
+    pub new_version: &'s str,
 }
 
-pub fn parse_body(body: &str) -> String {
+impl<'s> std::fmt::Display for DependabotChange<'s> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "- {name}: {old_ver} → {new_ver}\n",
+            name = self.name,
+            old_ver = self.old_version,
+            new_ver = self.new_version
+        )
+    }
+}
+
+pub fn parse_body<'body>(body: &'body str) -> Vec<DependabotChange<'body>> {
     let changes = parse_changes(body);
     for change in &changes {
         log::debug!("{:?}", change);
     }
-    let changes_md = format_changes(changes);
-    log::debug!("{changes_md}");
-    changes_md
+    changes
 }
 
-fn format_changes(changes: Vec<DependabotChange>) -> String {
+pub fn format_changes(changes: Vec<DependabotChange>) -> String {
     if changes.is_empty() {
         return String::new();
     }
@@ -29,10 +39,7 @@ fn format_changes(changes: Vec<DependabotChange>) -> String {
     // Iterate over each change and format it into the markdown string
     for change in changes {
         // For each change, add a list item in markdown format
-        markdown.push_str(&format!(
-            "- {}: {} → {}\n",
-            change.name, change.old_version, change.new_version
-        ));
+        markdown.push_str(&change.to_string());
     }
 
     // Return the final markdown string
@@ -91,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_parse_body() {
-        let changes_md = parse_body(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER);
+        let changes_md = format_changes(parse_body(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER));
         let expect_md = "\
         - `crate-ci/typos`: 1.27.0 → 1.28.4\n\
         - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0\n";
