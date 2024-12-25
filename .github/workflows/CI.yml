@@ -120,11 +120,12 @@ jobs:
 
       - name: Dryrun binary
         if: ${{ github.event_name }} == pull_request
+        shell: bash
         env:
           RUST_LOG: DEBUG
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
-        run: ${{ env.binary_name }} "CHANGELOG.md" \
+        run: ./${{ env.binary_name }} "CHANGELOG.md" \
                                     "commit msg" \
                                     "github-actions[bot]" \
                                     "github-actions[bot]@users.noreply.github.com" \
