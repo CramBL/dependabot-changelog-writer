@@ -28,6 +28,7 @@ struct Config {
     section_header: String,
     github_output_path: String,
     github_token: String,
+    push_token: String,
 }
 
 impl Config {
@@ -67,7 +68,8 @@ impl Config {
         let github_output_path =
             env::var("GITHUB_OUTPUT").expect("GITHUB_OUTPUT environment variable not set");
 
-        let github_token = env::var("GITHUB_TOKEN").expect("GITHUB_TOKEN not set");
+        let github_token = env::var("GH_TOKEN").expect("GH_TOKEN not set");
+        let push_token = env::var("PUSH_TOKEN").expect("PUSH_TOKEN not set");
 
         if changelog_path_str.is_empty() {
             Self::exit_with_error("No changelog path specified", &github_output_path);
@@ -91,6 +93,7 @@ impl Config {
             section_header,
             github_output_path,
             github_token,
+            push_token,
         })
     }
 
@@ -122,6 +125,10 @@ impl Config {
 
     pub fn github_token(&self) -> &str {
         &self.github_token
+    }
+
+    pub fn push_token(&self) -> &str {
+        &self.push_token
     }
 
     pub fn commit_message(&self) -> &str {
@@ -186,6 +193,7 @@ fn run() -> Result<()> {
             config.write_changelog(changelog_contents)?;
             git::add_commit_and_push(
                 config.github_token(),
+                config.push_token(),
                 config.commit_signature()?,
                 config.changelog_path(),
                 config.commit_message(),

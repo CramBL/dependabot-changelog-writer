@@ -1,5 +1,5 @@
 use auth_git2::GitAuthenticator;
-use git2::{Repository, Signature};
+use git2::{Remote, Repository, Signature};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
@@ -17,6 +17,7 @@ fn sanitize_path(file_path: &Path) -> Result<PathBuf> {
 
 pub fn add_commit_and_push(
     github_token: &str,
+    push_token: &str,
     signature: Signature,
     file_path: &Path,
     commit_message: &str,
@@ -24,11 +25,11 @@ pub fn add_commit_and_push(
     branch_ref: &str,
     branch_name: &str,
 ) -> Result<()> {
-    // Open the repository
     let repo = Repository::open(".")?;
 
     // Fetch the remote branch first to ensure we have it locally
     let mut remote = repo.find_remote(remote_name)?;
+
     let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
         "github.com",
         "x-access-token",
@@ -43,7 +44,6 @@ pub fn add_commit_and_push(
         None,
     )?;
 
-    // Get the index
     let mut index = repo.index()?;
 
     // Add the file to the index
@@ -72,28 +72,26 @@ pub fn add_commit_and_push(
     log::info!("Successfully committed: {commit_message}");
 
     // Push changes to the remote
-    push_to_remote(github_token, &repo, remote_name, branch_ref)?;
+    push_to_remote(push_token, &repo, &mut remote, branch_ref)?;
 
     Ok(())
 }
 
 fn push_to_remote(
-    github_token: &str,
+    push_token: &str,
     repo: &Repository,
-    remote_name: &str,
+    remote: &mut Remote,
     git_ref: &str,
 ) -> Result<()> {
     let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
         "github.com",
         "x-access-token",
-        github_token,
+        push_token,
     );
-    let mut remote = repo.find_remote(remote_name)?;
 
-    if let Err(e) = git_auth.push(repo, &mut remote, &[&format!("HEAD:{git_ref}")]) {
+    if let Err(e) = git_auth.push(repo, remote, &[&format!("HEAD:{git_ref}")]) {
         log::error!("Push failed, does this job have write permissions?");
         return Err(e.into());
     }
-    log::info!("Successfully pushed to remote '{remote_name}'");
     Ok(())
 }
