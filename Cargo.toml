@@ -15,3 +15,11 @@ serde_json = "1.0.134"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
+
+# The binary is plenty fast, we optimize for size to reduce the amount that has to be downloaded when the action is run 
+[profile.release]
+strip = true
+panic = "abort"
+opt-level = "z"
+lto = true
+codegen-units = 1
