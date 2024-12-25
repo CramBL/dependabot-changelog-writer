@@ -198,16 +198,7 @@ fn run() -> Result<()> {
             log::info!("{changeset}");
         } else {
             config.write_changelog(changelog_contents)?;
-            git::add_commit_and_push(
-                config.github_token(),
-                config.push_token(),
-                config.commit_signature()?,
-                config.changelog_path(),
-                config.commit_message(),
-                "origin",
-                event.branch_ref(),
-                event.branch_name(),
-            )?;
+            git::add_commit_and_push(&config, "origin", event.branch_ref(), event.branch_name())?;
         }
     } else {
         log::warn!("Pull request body is empty");

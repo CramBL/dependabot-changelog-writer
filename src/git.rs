@@ -1,7 +1,9 @@
 use auth_git2::GitAuthenticator;
-use git2::{Remote, Repository, Signature};
+use git2::{Remote, Repository};
 use std::error::Error;
 use std::path::{Path, PathBuf};
+
+use crate::Config;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -16,11 +18,7 @@ fn sanitize_path(file_path: &Path) -> Result<PathBuf> {
 }
 
 pub fn add_commit_and_push(
-    github_token: &str,
-    push_token: &str,
-    signature: Signature,
-    file_path: &Path,
-    commit_message: &str,
+    config: &Config,
     remote_name: &str,
     branch_ref: &str,
     branch_name: &str,
@@ -28,13 +26,11 @@ pub fn add_commit_and_push(
     let repo = Repository::open(".")?;
 
     // Fetch the remote branch first to ensure we have it locally
+    // this is necessary in actions triggered by an opened PR because
+    // they per default checkout branches detached from HEAD
     let mut remote = repo.find_remote(remote_name)?;
 
-    let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
-        "github.com",
-        "x-access-token",
-        github_token,
-    );
+    let git_auth = token_git_authenticator(config.github_token());
     git_auth.fetch(
         &repo,
         &mut remote,
@@ -47,7 +43,7 @@ pub fn add_commit_and_push(
     let mut index = repo.index()?;
 
     // Add the file to the index
-    let clean_path = sanitize_path(file_path)?;
+    let clean_path = sanitize_path(config.changelog_path())?;
     index.add_path(&clean_path)?;
     index.write()?;
 
@@ -60,21 +56,25 @@ pub fn add_commit_and_push(
     let head_commit = head_ref.peel_to_commit()?;
 
     // Create the commit
+
+    let commit_signature = config.commit_signature()?;
     repo.commit(
-        Some("HEAD"),    // Update the HEAD reference
-        &signature,      // Author signature
-        &signature,      // Committer signature
-        commit_message,  // Commit message
-        &tree,           // Tree object
-        &[&head_commit], // Parent commit(s)
+        Some("HEAD"),            // Update the HEAD reference
+        &commit_signature,       // Author signature
+        &commit_signature,       // Committer signature
+        config.commit_message(), // Commit message
+        &tree,                   // Tree object
+        &[&head_commit],         // Parent commit(s)
     )?;
 
-    log::info!("Successfully committed: {commit_message}");
-
     // Push changes to the remote
-    push_to_remote(push_token, &repo, &mut remote, branch_ref)?;
+    push_to_remote(config.push_token(), &repo, &mut remote, branch_ref)?;
 
     Ok(())
+}
+
+fn token_git_authenticator(token: &str) -> GitAuthenticator {
+    GitAuthenticator::new_empty().add_plaintext_credentials("github.com", "x-access-token", token)
 }
 
 fn push_to_remote(
@@ -83,11 +83,7 @@ fn push_to_remote(
     remote: &mut Remote,
     git_ref: &str,
 ) -> Result<()> {
-    let git_auth = GitAuthenticator::new_empty().add_plaintext_credentials(
-        "github.com",
-        "x-access-token",
-        push_token,
-    );
+    let git_auth = token_git_authenticator(push_token);
 
     if let Err(e) = git_auth.push(repo, remote, &[&format!("HEAD:{git_ref}")]) {
         log::error!("Push failed, does this job have write permissions?");
