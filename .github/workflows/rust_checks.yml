@@ -44,7 +44,8 @@ jobs:
         if: ${{ github.event_name }} == pull_request
         env:
           RUST_LOG: DEBUG
-          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+          PUSH_TOKEN: ${{ github.token }}
         run: cargo run -- --dry-run "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3"
 
   build:
