@@ -6,14 +6,12 @@ pub fn add_changes_to_changelog_contents(
     version_header: &str,
     section_header: &str,
 ) {
-    let changes_md = format_changes(changes);
-    debug_assert!(!changes_md.starts_with("\n\n"));
-    debug_assert!(!changes_md.ends_with("\n\n"));
+    let changes_formatted_len = changes.iter().fold(0, |sum, c| c.formatted_len() + sum);
 
     let mut h3_header = format!("### {section_header}\n");
     // Reserve for the new changelog entry to avoid the worst case of allocating
     // the size of the existing content
-    changelog_content.reserve(changes_md.len() + h3_header.len());
+    changelog_content.reserve(changes_formatted_len + h3_header.len() + 3); // +3 for the worst case of adding 3 newlines
 
     let h2_insert_pos = find_h2_insert_position(changelog_content, version_header)
         .expect("Could not find the specified version h2 header");
@@ -21,12 +19,20 @@ pub fn add_changes_to_changelog_contents(
     if let Some(existing_h3_insert_pos) =
         find_existing_h3_insert_position(&changelog_content[h2_insert_pos..], section_header)
     {
+        // Parse the existing section content to see if it already contains mentions of bumping the same dependencies we are
+        // about to add.
+        let changes_md = format_changes(changes);
+        debug_assert!(!changes_md.starts_with("\n\n"));
+        debug_assert!(!changes_md.ends_with("\n\n"));
         changelog_content.insert_str(h2_insert_pos + existing_h3_insert_pos, &changes_md);
     } else {
+        let changes_md = format_changes(changes);
+        debug_assert!(!changes_md.starts_with("\n\n"));
+        debug_assert!(!changes_md.ends_with("\n\n"));
         let new_h3_insert_pos = find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
         let insert_pos = h2_insert_pos + new_h3_insert_pos;
 
-        // Insert a leading newline if we are not inserting the header just after two newline
+        // Insert a leading newline if we are not inserting the header just after two newlines
         let prev_two_chars = &changelog_content[insert_pos - 2..insert_pos];
         if prev_two_chars != "\n\n" {
             h3_header.insert(0, '\n');
@@ -99,14 +105,14 @@ mod tests {
     use pretty_assertions::assert_str_eq;
 
     const EXAMPLE_CHANGES: &[DependabotChange<'_>] = &[
-        DependabotChange::new_const("`serde`", "1.0.215", "1.0.216"),
-        DependabotChange::new_const("`chrono`", "0.4.38", "0.4.39"),
-        DependabotChange::new_const("`semver`", "1.0.23", "1.0.24"),
-        DependabotChange::new_const("`env_logger`", "0.11.5", "0.11.6"),
-        DependabotChange::new_const("`zip`", "2.2.1", "2.2.2"),
-        DependabotChange::new_const("`wasm-bindgen-futures`", "0.4.47", "0.4.49"),
-        DependabotChange::new_const("`web-sys`", "0.3.74", "0.3.76"),
-        DependabotChange::new_const("`thiserror`", "2.0.4", "2.0.9"),
+        DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
+        DependabotChange::new("`chrono`", "0.4.38", "0.4.39"),
+        DependabotChange::new("`semver`", "1.0.23", "1.0.24"),
+        DependabotChange::new("`env_logger`", "0.11.5", "0.11.6"),
+        DependabotChange::new("`zip`", "2.2.1", "2.2.2"),
+        DependabotChange::new("`wasm-bindgen-futures`", "0.4.47", "0.4.49"),
+        DependabotChange::new("`web-sys`", "0.3.74", "0.3.76"),
+        DependabotChange::new("`thiserror`", "2.0.4", "2.0.9"),
     ];
 
     const EXAMPLE_CHANGES_MD: &str = "\
