@@ -36,7 +36,7 @@ impl Config {
         let mut args = env::args().skip(1);
 
         let first_arg = args.next().ok_or("Missing changelog path")?;
-        let dry_run = first_arg == "--dry-run";
+        let mut dry_run = first_arg == "--dry-run";
         log::debug!("dry_run={dry_run}");
 
         let changelog_path_str = if dry_run {
@@ -60,6 +60,13 @@ impl Config {
 
         let section_header = args.next().ok_or("Missing section header")?;
         log::debug!("section_header={section_header}");
+
+        let push_changes = args.next().ok_or("Missing push_changes setting")?;
+        log::debug!("push_changes={push_changes}");
+
+        if !dry_run && !push_changes.eq_ignore_ascii_case("true") {
+            dry_run = true;
+        }
 
         if args.next().is_some() {
             return Err("Too many arguments provided".into());

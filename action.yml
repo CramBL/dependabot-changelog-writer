@@ -26,6 +26,10 @@ inputs:
     description: The section header to add the changelog entry under
     required: false
     default: "Dependencies"
+  push_changes:
+    description: "Whether or not to add, commit, & push the modified changelog"
+    required: false
+    default: "true"
 
   push_token:
     description: "The GitHub token to use for git push, defaults to workflow token"
@@ -80,7 +84,7 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}" "${{ inputs.committer_name }}" "${{ inputs.committer_email }}" "${{ inputs.version }}" "${{ inputs.section_header }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}" "${{ inputs.committer_name }}" "${{ inputs.committer_email }}" "${{ inputs.version }}" "${{ inputs.section_header }}" "${{ inputs.push_changes }}"
       env:
         GH_TOKEN: ${{ inputs.action_download_token }}
         PUSH_TOKEN: ${{ inputs.push_token }}
