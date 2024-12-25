@@ -54,7 +54,6 @@ fn find_existing_h3_insert_position(
     let mut content_pos = 0;
     for l in changelog_content.split_inclusive('\n') {
         content_pos += l.len();
-        eprintln!("Content pos: {content_pos}");
         if l.starts_with("###") {
             if l[2..].contains(section_header) {
                 let mut offset_within_section = 0;
@@ -79,7 +78,6 @@ fn find_existing_h3_insert_position(
 fn find_new_h3_insert_position(changelog_content: &str) -> usize {
     let mut content_pos = 0;
     for l in changelog_content.split_inclusive('\n') {
-        eprintln!("Content pos: {content_pos}");
         // First check for h3 header then h2 header
         if l.starts_with("###") {
             content_pos += l.len();
