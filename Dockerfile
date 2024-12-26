@@ -23,8 +23,9 @@ RUN ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm &
 
 # Build OpenSSL for musl
 WORKDIR /build
-RUN curl -sSL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1f.tar.gz | tar xz && \
-    cd openssl-OpenSSL_1_1_1f/ && \
+
+RUN curl -sSL https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz | tar xz && \
+    cd openssl-3.4.0/ && \
     CC="musl-gcc -fPIE -pie" ./Configure no-shared no-async --prefix=/usr/local/musl --openssldir=/usr/local/musl/ssl linux-x86_64 && \
     make depend && \
     make -j$(nproc) && \
@@ -34,7 +35,7 @@ RUN curl -sSL https://github.com/openssl/openssl/archive/OpenSSL_1_1_1f.tar.gz |
 ENV PKG_CONFIG_PATH=/usr/local/musl/lib/pkgconfig
 ENV OPENSSL_DIR=/usr/local/musl
 ENV OPENSSL_INCLUDE_DIR=/usr/local/musl/include
-ENV OPENSSL_LIB_DIR=/usr/local/musl/lib
+ENV OPENSSL_LIB_DIR=/usr/local/musl/lib64
 ENV PKG_CONFIG_ALLOW_CROSS=1
 ENV OPENSSL_STATIC=true
 
