@@ -76,12 +76,13 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/app \
             rust-musl-builder
-
+            
       - name: Build macos
         if: ${{ matrix.os == 'macos-latest' }}
-        env:
-          OPENSSL_DIR: /usr/local/opt/openssl@3
-        run: cargo build --release
+        run: |
+          export OPENSSL_INCLUDE_DIR=$(brew --prefix openssl)/include
+          export OPENSSL_LIB_DIR=$(brew --prefix openssl)/lib
+          cargo build --release
 
       - name: Build windows
         if: ${{ matrix.os == 'windows-latest' }}
