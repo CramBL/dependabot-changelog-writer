@@ -1,11 +1,21 @@
 #[cfg(test)]
 mod dependabot_example_bodies;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DependabotChange<'s> {
     pub name: &'s str,
     pub old_version: &'s str,
     pub new_version: &'s str,
+}
+
+impl<'s> DependabotChange<'s> {
+    pub const fn new_const(name: &'s str, old_version: &'s str, new_version: &'s str) -> Self {
+        Self {
+            name,
+            old_version,
+            new_version,
+        }
+    }
 }
 
 impl<'s> std::fmt::Display for DependabotChange<'s> {

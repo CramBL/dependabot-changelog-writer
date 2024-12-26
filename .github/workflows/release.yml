@@ -26,22 +26,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install musl target
+      - name: Build docker rust-musl-builder
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: rustup target add x86_64-unknown-linux-musl
-
-      - name: Install musl-tools
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: ./scripts/build_openssl.bash
-
-      - name: Build linux musl
+        run: docker build -t rust-musl-builder .
+          
+      - name: Build Linux MUSL binary with Docker
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          export OPENSSL_DIR=$(readlink -f musl_build)
-          cargo build --release --target x86_64-unknown-linux-musl
-        env:
-          PKG_CONFIG_ALLOW_CROSS: 1
-          OPENSSL_STATIC: true
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            rust-musl-builder
 
       - name: Build macos
         if: ${{ matrix.os == 'macos-latest' }}

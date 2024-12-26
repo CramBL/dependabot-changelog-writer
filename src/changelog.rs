@@ -98,6 +98,17 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_str_eq;
 
+    const EXAMPLE_CHANGES: &[DependabotChange<'_>] = &[
+        DependabotChange::new_const("`serde`", "1.0.215", "1.0.216"),
+        DependabotChange::new_const("`chrono`", "0.4.38", "0.4.39"),
+        DependabotChange::new_const("`semver`", "1.0.23", "1.0.24"),
+        DependabotChange::new_const("`env_logger`", "0.11.5", "0.11.6"),
+        DependabotChange::new_const("`zip`", "2.2.1", "2.2.2"),
+        DependabotChange::new_const("`wasm-bindgen-futures`", "0.4.47", "0.4.49"),
+        DependabotChange::new_const("`web-sys`", "0.3.74", "0.3.76"),
+        DependabotChange::new_const("`thiserror`", "2.0.4", "2.0.9"),
+    ];
+
     const EXAMPLE_CHANGES_MD: &str = "\
         - `serde`: 1.0.215 → 1.0.216\n\
         - `chrono`: 0.4.38 → 0.4.39\n\
@@ -116,6 +127,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+"##;
+
+    const EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES: &str = r##"# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Some feature
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+- `semver`: 1.0.23 → 1.0.24
+- `env_logger`: 0.11.5 → 0.11.6
+
+### Fix
+
+- Some issue
 "##;
 
     const EXAMPLE_SMALL_CHANGELOG_CONTENTS: &str = r##"# Changelog
@@ -539,7 +574,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "#;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES_MD.to_owned(),
+            EXAMPLE_CHANGES.to_vec(),
             &mut changelog_content,
             "Unreleased",
             "Dependencies",
@@ -585,7 +620,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "#;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES_MD.to_owned(),
+            EXAMPLE_CHANGES.to_vec(),
             &mut changelog_content,
             "Unreleased",
             "Dependencies",
@@ -621,7 +656,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "#;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES_MD.to_owned(),
+            EXAMPLE_CHANGES.to_vec(),
             &mut changelog_content,
             "Unreleased",
             "Dependencies",
