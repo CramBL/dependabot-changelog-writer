@@ -31,5 +31,5 @@ run-fake: (run \
 build-container:
     docker build -t rust-musl-builder .
 
-build-musl-bin:
-    docker run -v $(pwd):/app rust-musl-builder
+build-musl-bin *ARGS="":
+    docker run -v $(pwd):/app rust-musl-builder {{ARGS}}
