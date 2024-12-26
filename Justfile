@@ -28,7 +28,7 @@ run-fake: (run \
             "Dependencies" \
             "FALSE")
 
-build-container *ARGS="--release"
+build-container:
     docker build -t rust-musl-builder .
 
 build-musl-bin:

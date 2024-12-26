@@ -45,4 +45,4 @@ WORKDIR /app
 COPY . .
 
 # Build the project for musl target
-CMD ["cargo", "build", "--target", "x86_64-unknown-linux-musl", "--release"]
+CMD ["cargo", "build","--color=always", "--target", "x86_64-unknown-linux-musl", "--release"]
