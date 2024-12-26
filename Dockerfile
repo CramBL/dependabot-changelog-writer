@@ -35,6 +35,8 @@ ENV PKG_CONFIG_PATH=/usr/local/musl/lib/pkgconfig
 ENV OPENSSL_DIR=/usr/local/musl
 ENV OPENSSL_INCLUDE_DIR=/usr/local/musl/include
 ENV OPENSSL_LIB_DIR=/usr/local/musl/lib
+ENV PKG_CONFIG_ALLOW_CROSS=1
+ENV OPENSSL_STATIC=true
 
 # Create a directory for the Rust project
 WORKDIR /app
