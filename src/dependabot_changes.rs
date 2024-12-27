@@ -1,10 +1,25 @@
-#[cfg(test)]
-mod dependabot_example_bodies;
+#[derive(Debug, Clone)]
+enum OldVersion<'s> {
+    FromDependabot(&'s str),
+    FromChangelog(String),
+}
+
+impl<'s> OldVersion<'s> {
+    pub fn len(&self) -> usize {
+        match self {
+            // Comes from parsing the Dependabot PR body
+            OldVersion::FromDependabot(s) => s.len(),
+            // Comes from the Changelog (the section already mentions upgrading this version)
+            // and replaces the version that comes from the Dependabot PR body
+            OldVersion::FromChangelog(s) => s.len(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct DependabotChange<'s> {
     pub name: &'s str,
-    pub old_version: &'s str,
+    old_version: OldVersion<'s>,
     pub new_version: &'s str,
 }
 
@@ -16,12 +31,12 @@ impl<'s> DependabotChange<'s> {
     pub const fn new(name: &'s str, old_version: &'s str, new_version: &'s str) -> Self {
         Self {
             name,
-            old_version,
+            old_version: OldVersion::FromDependabot(old_version),
             new_version,
         }
     }
 
-    pub const fn formatted_len(&self) -> usize {
+    pub fn formatted_len(&self) -> usize {
         Self::PREFIX.len()
             + self.name.len()
             + Self::NAME_OLD_VER_SEPARATOR.len()
@@ -50,6 +65,10 @@ impl<'s> DependabotChange<'s> {
             None
         }
     }
+
+    pub fn replace_old_version(&mut self, old_version: String) {
+        self.old_version = OldVersion::FromChangelog(old_version)
+    }
 }
 
 impl std::fmt::Display for DependabotChange<'_> {
@@ -61,7 +80,10 @@ impl std::fmt::Display for DependabotChange<'_> {
             sep1 = Self::NAME_OLD_VER_SEPARATOR,
             sep2 = Self::OLD_VER_NEW_VER_SEPARATOR,
             name = self.name,
-            old_ver = self.old_version,
+            old_ver = match self.old_version {
+                OldVersion::FromDependabot(s) => s,
+                OldVersion::FromChangelog(ref s) => s,
+            },
             new_ver = self.new_version
         )
     }
@@ -124,7 +146,7 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dependabot_example_bodies::*;
+    use crate::test_util::example_dependabot_pr_bodies::*;
     use pretty_assertions::assert_str_eq;
 
     #[test]
