@@ -1,7 +1,7 @@
 use similar::{ChangeTag, TextDiff};
 
 pub fn print_diff(old: &str, new: &str) {
-    let diff = TextDiff::from_lines(new, old);
+    let diff = TextDiff::from_lines(old, new);
 
     for change in diff.iter_all_changes() {
         let sign = match change.tag() {
