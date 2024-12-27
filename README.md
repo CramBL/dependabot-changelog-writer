@@ -12,7 +12,7 @@ By default `dependabot-changelog-writer` generates entries under `unreleased` of
 ### Dependencies
 
 - `dep`: [semver|SHA] → [semver|SHA]
-- `foo`: [0.1.0] → [0.1.1]
+- `foo`: 0.1.0 → 0.1.1
 ```
 
 Then commits and pushes the changes to the current branch.

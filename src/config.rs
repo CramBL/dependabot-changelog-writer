@@ -6,7 +6,13 @@ use std::{env, io};
 
 use git2::Signature;
 
+use crate::github_env;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+fn next_arg_trimmed(args: &mut impl Iterator<Item = String>) -> Option<String> {
+    Some(args.next()?.trim().to_owned())
+}
 
 #[derive(Debug)]
 pub struct Config {
@@ -17,34 +23,31 @@ pub struct Config {
     committer_email: String,
     version_header: String,
     section_header: String,
-    github_output_path: String,
-    github_token: String,
-    push_token: String,
 }
 
 impl Config {
     pub fn new() -> Result<Self> {
         let mut args = env::args().skip(1);
 
-        let changelog_path = args.next().ok_or("Missing changelog path")?;
+        let changelog_path = next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
         log::debug!("changelog_path={changelog_path}");
 
-        let commit_message = args.next().ok_or("Missing commit message")?;
+        let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit message")?;
         log::debug!("commit_message={commit_message}");
 
-        let committer_name = args.next().ok_or("Missing committer name")?;
+        let committer_name = next_arg_trimmed(&mut args).ok_or("Missing committer name")?;
         log::debug!("committer_name={committer_name}");
 
-        let committer_email = args.next().ok_or("Missing committer email")?;
+        let committer_email = next_arg_trimmed(&mut args).ok_or("Missing committer email")?;
         log::debug!("committer_email={committer_email}");
 
-        let version_header = args.next().ok_or("Missing section header")?;
+        let version_header = next_arg_trimmed(&mut args).ok_or("Missing section header")?;
         log::debug!("version_header={version_header}");
 
-        let section_header = args.next().ok_or("Missing section header")?;
+        let section_header = next_arg_trimmed(&mut args).ok_or("Missing section header")?;
         log::debug!("section_header={section_header}");
 
-        let push_changes = args.next().ok_or("Missing push_changes setting")?;
+        let push_changes = next_arg_trimmed(&mut args).ok_or("Missing push_changes setting")?;
         log::debug!("push_changes={push_changes}");
 
         let dry_run = !push_changes.eq_ignore_ascii_case("true");
@@ -53,21 +56,17 @@ impl Config {
             return Err("Too many arguments provided".into());
         }
 
-        let github_output_path =
-            env::var("GITHUB_OUTPUT").expect("GITHUB_OUTPUT environment variable not set");
-
-        let github_token = env::var("GH_TOKEN").expect("GH_TOKEN not set");
-        let push_token = env::var("PUSH_TOKEN").expect("PUSH_TOKEN not set");
+        let github_output_path = github_env::github_output();
 
         if changelog_path.is_empty() {
-            Self::exit_with_error("No changelog path specified", &github_output_path);
+            Self::exit_with_error("No changelog path specified", github_output_path);
         }
 
         let changelog_path = PathBuf::from(changelog_path);
         if !changelog_path.is_file() {
             Self::exit_with_error(
                 "The specified changelog could not be found",
-                &github_output_path,
+                github_output_path,
             );
         }
 
@@ -79,9 +78,6 @@ impl Config {
             committer_email,
             version_header,
             section_header,
-            github_output_path,
-            github_token,
-            push_token,
         })
     }
 
@@ -99,24 +95,8 @@ impl Config {
         process::exit(1);
     }
 
-    pub fn exit(&self, error_msg: &str) -> ! {
-        eprintln!("Error: {error_msg}");
-        if let Err(e) = Self::write_github_output(error_msg, &self.github_output_path) {
-            eprintln!("Additional error when writing output: {e}");
-        }
-        process::exit(1);
-    }
-
     pub fn commit_signature(&self) -> std::result::Result<Signature, git2::Error> {
         Signature::now(&self.committer_name, &self.committer_email)
-    }
-
-    pub fn github_token(&self) -> &str {
-        &self.github_token
-    }
-
-    pub fn push_token(&self) -> &str {
-        &self.push_token
     }
 
     pub fn commit_message(&self) -> &str {

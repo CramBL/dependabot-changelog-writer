@@ -3,6 +3,8 @@ use git2::{Remote, Repository};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
+use crate::github_env;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 // Sanitize the path such that we can add it to the repo git index
@@ -28,7 +30,7 @@ pub fn add_commit_and_push(
     // they per default checkout branches detached from HEAD
     let mut remote = repo.find_remote(remote_name)?;
 
-    let git_auth = token_git_authenticator(config.github_token());
+    let git_auth = token_git_authenticator(github_env::gh_token());
     git_auth.fetch(
         &repo,
         &mut remote,
@@ -66,7 +68,7 @@ pub fn add_commit_and_push(
     )?;
 
     // Push changes to the remote
-    push_to_remote(config.push_token(), &repo, &mut remote, branch_ref)?;
+    push_to_remote(github_env::push_token(), &repo, &mut remote, branch_ref)?;
 
     Ok(())
 }
