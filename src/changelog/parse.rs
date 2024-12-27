@@ -111,9 +111,67 @@ pub(crate) fn find_old_ver_from_line(line: &str) -> Option<String> {
     None
 }
 
+pub fn find_h2_insert_position(changelog_content: &str, version: &str) -> Option<usize> {
+    let mut content_pos = 0;
+    for l in changelog_content.split_inclusive('\n') {
+        if l.starts_with("##") && l[2..].contains(version) {
+            return Some(content_pos + l.len());
+        }
+
+        content_pos += l.len();
+    }
+    None
+}
+
+// Returns the start and end position of the target H3 header.
+// Returns None if the header is not found
+pub fn find_existing_h3_insert_position(
+    changelog_content: &str,
+    section_header: &str,
+) -> Option<(usize, usize)> {
+    let mut content_pos = 0;
+    for l in changelog_content.split_inclusive('\n') {
+        content_pos += l.len();
+        if l.starts_with("###") {
+            if l[2..].contains(section_header) {
+                let mut offset_within_section = 0;
+                for l in changelog_content[content_pos..].split_inclusive('\n') {
+                    if l.starts_with("##") {
+                        // Go back one to prevent extra blank lines
+                        offset_within_section -= 1;
+                        break;
+                    }
+                    offset_within_section += l.len();
+                }
+
+                return Some((content_pos, content_pos + offset_within_section));
+            }
+        } else if l.starts_with("##") {
+            return None;
+        }
+    }
+    None
+}
+
+pub fn find_new_h3_insert_position(changelog_content: &str) -> usize {
+    let mut content_pos = 0;
+    for l in changelog_content.split_inclusive('\n') {
+        // First check for h3 header then h2 header
+        if l.starts_with("###") {
+            content_pos += l.len();
+        } else if l.starts_with("##") {
+            return content_pos;
+        } else {
+            content_pos += l.len();
+        }
+    }
+    content_pos
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::example_changelogs::*;
     use pretty_assertions::assert_str_eq;
 
     #[test]
@@ -152,5 +210,53 @@ mod tests {
             "Bumps [some-submodule](https://github.com/org/repo) from `b0c35f6` to `c8bd600`.";
         let old_ver = find_old_ver_from_line(&test_str).unwrap();
         assert_str_eq!(&old_ver, "`b0c35f6`");
+    }
+
+    #[test]
+    fn test_find_insert_position_empty_changelog() {
+        let changelog_content = EXAMPLE_EMPTY_CHANGELOG_CONTENTS;
+        let insert_pos = find_h2_insert_position(changelog_content, "Unreleased").unwrap();
+        assert_eq!(insert_pos, 269);
+
+        let insert_h3_pos =
+            find_existing_h3_insert_position(&changelog_content[insert_pos..], "Dependencies");
+        assert_eq!(insert_h3_pos, None);
+    }
+
+    #[test]
+    fn test_find_insert_position_version_empty_changelog() {
+        let insert_pos = find_h2_insert_position(EXAMPLE_EMPTY_CHANGELOG_CONTENTS, "0.1.0");
+        assert_eq!(insert_pos, None);
+    }
+
+    #[test]
+    fn test_find_insert_position_used_changelog() {
+        let changelog_content = EXAMPLE_USED_CHANGELOG_CONTENTS;
+        let insert_pos = find_h2_insert_position(changelog_content, "unreleased").unwrap();
+        assert_eq!(insert_pos, 269);
+
+        let insert_h3_pos =
+            find_existing_h3_insert_position(&changelog_content[insert_pos..], "Dependencies");
+        assert_eq!(insert_h3_pos, None);
+    }
+
+    #[test]
+    fn test_find_insert_position_version_used_changelog() {
+        let insert_pos = find_h2_insert_position(EXAMPLE_USED_CHANGELOG_CONTENTS, "1.3.5").unwrap();
+        assert_eq!(insert_pos, 281);
+
+        let remainder = EXAMPLE_USED_CHANGELOG_CONTENTS[insert_pos..].to_owned();
+        eprintln!("{}", remainder);
+    }
+
+    #[test]
+    fn test_find_insert_position_small_changelog() {
+        let changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS;
+        let insert_pos = find_h2_insert_position(changelog_content, "Unreleased").unwrap();
+        assert_eq!(insert_pos, 269);
+
+        let insert_h3_pos =
+            find_existing_h3_insert_position(&changelog_content[insert_pos..], "Dependencies");
+        assert_eq!(insert_h3_pos, None);
     }
 }
