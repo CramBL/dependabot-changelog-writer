@@ -13,6 +13,9 @@ mod dependabot_changes;
 mod event_json;
 mod git;
 
+#[cfg(test)]
+mod test_util;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn run() -> Result<()> {

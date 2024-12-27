@@ -1,36 +1,99 @@
-#[cfg(test)]
-mod dependabot_example_bodies;
-
-#[derive(Debug, Clone)]
-pub struct DependabotChange<'s> {
-    pub name: &'s str,
-    pub old_version: &'s str,
-    pub new_version: &'s str,
+#[derive(Debug, Clone, PartialEq)]
+enum OldVersion<'s> {
+    FromDependabot(&'s str),
+    FromChangelog(String),
 }
 
-impl<'s> DependabotChange<'s> {
-    pub const fn new_const(name: &'s str, old_version: &'s str, new_version: &'s str) -> Self {
-        Self {
-            name,
-            old_version,
-            new_version,
+impl<'s> OldVersion<'s> {
+    pub fn len(&self) -> usize {
+        match self {
+            // Comes from parsing the Dependabot PR body
+            OldVersion::FromDependabot(s) => s.len(),
+            // Comes from the Changelog (the section already mentions upgrading this version)
+            // and replaces the version that comes from the Dependabot PR body
+            OldVersion::FromChangelog(s) => s.len(),
         }
     }
 }
 
-impl<'s> std::fmt::Display for DependabotChange<'s> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct DependabotChange<'s> {
+    pub name: &'s str,
+    old_version: OldVersion<'s>,
+    pub new_version: &'s str,
+}
+
+impl<'s> DependabotChange<'s> {
+    const PREFIX: &'static str = "- ";
+    const NAME_OLD_VER_SEPARATOR: &'static str = ": ";
+    const OLD_VER_NEW_VER_SEPARATOR: &'static str = " → ";
+
+    pub const fn new(name: &'s str, old_version: &'s str, new_version: &'s str) -> Self {
+        Self {
+            name,
+            old_version: OldVersion::FromDependabot(old_version),
+            new_version,
+        }
+    }
+
+    pub fn formatted_len(&self) -> usize {
+        Self::PREFIX.len()
+            + self.name.len()
+            + Self::NAME_OLD_VER_SEPARATOR.len()
+            + self.old_version.len()
+            + Self::OLD_VER_NEW_VER_SEPARATOR.len()
+            + self.new_version.len()
+            + "\n".len()
+    }
+
+    pub fn from_str(haystack: &'s str) -> Option<Self> {
+        // Try to extract the dependency name, old version, and new version
+        if let Some(from_pos) = haystack.find("from") {
+            let to_pos = haystack.find("to").unwrap_or(haystack.len());
+
+            // Extract the dependency name (before "from")
+            let name = &haystack[from_version_character_pos()..from_pos].trim();
+
+            // Extract the old version (between "from" and "to")
+            let old_version = &haystack[from_pos + 4..to_pos].trim();
+
+            // Extract the new version (after "to")
+            let new_version = &haystack[to_pos + 2..].trim();
+
+            Some(DependabotChange::new(name, old_version, new_version))
+        } else {
+            None
+        }
+    }
+
+    pub fn replace_old_version(&mut self, old_version: String) {
+        self.old_version = OldVersion::FromChangelog(old_version)
+    }
+
+    pub fn old_version(&self) -> &str {
+        match self.old_version {
+            OldVersion::FromDependabot(s) => s,
+            OldVersion::FromChangelog(ref s) => s,
+        }
+    }
+}
+
+impl std::fmt::Display for DependabotChange<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
+        writeln!(
             f,
-            "- {name}: {old_ver} → {new_ver}\n",
+            "{pre}{name}{sep1}{old_ver}{sep2}{new_ver}",
+            pre = Self::PREFIX,
+            sep1 = Self::NAME_OLD_VER_SEPARATOR,
+            sep2 = Self::OLD_VER_NEW_VER_SEPARATOR,
             name = self.name,
-            old_ver = self.old_version,
+            old_ver = self.old_version(),
             new_ver = self.new_version
         )
     }
 }
 
-pub fn parse_body<'body>(body: &'body str) -> Vec<DependabotChange<'body>> {
+pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
     let changes = parse_changes(body);
     for change in &changes {
         log::debug!("{:?}", change);
@@ -75,24 +138,8 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
         if let Some(start) = line.find(UPDATE_LINE_KEYWORD) {
             let remaining = &line[start..];
 
-            // Try to extract the dependency name, old version, and new version
-            if let Some(from_pos) = remaining.find("from") {
-                let to_pos = remaining.find("to").unwrap_or(remaining.len());
-
-                // Extract the dependency name (before "from")
-                let name = &remaining[from_version_character_pos()..from_pos].trim();
-
-                // Extract the old version (between "from" and "to")
-                let old_version = &remaining[from_pos + 4..to_pos].trim();
-
-                // Extract the new version (after "to")
-                let new_version = &remaining[to_pos + 2..].trim();
-
-                changes.push(DependabotChange {
-                    name,
-                    old_version,
-                    new_version,
-                });
+            if let Some(dependabot_change) = DependabotChange::from_str(remaining) {
+                changes.push(dependabot_change);
             }
         }
     }
@@ -103,7 +150,7 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dependabot_example_bodies::*;
+    use crate::test_util::example_dependabot_pr_bodies::*;
     use pretty_assertions::assert_str_eq;
 
     #[test]
