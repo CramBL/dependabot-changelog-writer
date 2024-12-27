@@ -15,7 +15,6 @@ pub fn add_changes_to_changelog_contents(
     // the size of the existing content
     changelog_content.reserve(changes_formatted_len + h3_header.len() + 3); // +3 for the worst case of adding 3 newlines
 
-    #[cfg(debug_assertions)]
     let change_log_str_capacity = changelog_content.capacity();
 
     let h2_insert_pos = parse::find_h2_insert_position(changelog_content, version_header)
