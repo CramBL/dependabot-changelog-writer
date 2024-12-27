@@ -1,3 +1,5 @@
+mod parse;
+
 use crate::dependabot_changes::{format_changes, DependabotChange};
 
 pub fn add_changes_to_changelog_contents(
@@ -16,15 +18,39 @@ pub fn add_changes_to_changelog_contents(
     let h2_insert_pos = find_h2_insert_position(changelog_content, version_header)
         .expect("Could not find the specified version h2 header");
 
-    if let Some(existing_h3_insert_pos) =
+    if let Some((existing_h3_start, existing_h3_insert_pos)) =
         find_existing_h3_insert_position(&changelog_content[h2_insert_pos..], section_header)
     {
+        let abs_h3_start = h2_insert_pos + existing_h3_start;
+        let abs_h3_insert_pos = h2_insert_pos + existing_h3_insert_pos;
         // Parse the existing section content to see if it already contains mentions of bumping the same dependencies we are
         // about to add.
+        let mut replace_line_at: Vec<(usize, usize)> = vec![];
+        let h3_section = &changelog_content[abs_h3_start..abs_h3_insert_pos];
+        let mut h3_section_pos = 0;
+        for line in h3_section.split_inclusive('\n') {
+            for change in &changes {
+                if line.contains(change.name) {
+                    replace_line_at.push((h3_section_pos, line.len()));
+                    break;
+                }
+            }
+
+            h3_section_pos += line.len();
+        }
+        let mut string_offset = 0;
+        for (line_start, line_len) in replace_line_at.into_iter().rev() {
+            changelog_content.replace_range(line_start..line_len, "");
+            string_offset += line_len;
+        }
+
         let changes_md = format_changes(changes);
         debug_assert!(!changes_md.starts_with("\n\n"));
         debug_assert!(!changes_md.ends_with("\n\n"));
-        changelog_content.insert_str(h2_insert_pos + existing_h3_insert_pos, &changes_md);
+        changelog_content.insert_str(
+            h2_insert_pos + existing_h3_insert_pos - string_offset,
+            &changes_md,
+        );
     } else {
         let changes_md = format_changes(changes);
         debug_assert!(!changes_md.starts_with("\n\n"));
@@ -44,6 +70,41 @@ pub fn add_changes_to_changelog_contents(
     }
 }
 
+#[derive(Debug)]
+struct ExistingDependency {
+    line_start: usize,
+    line_len: usize,
+    old_ver: String,
+}
+
+fn find_existing_dependency_lines_to_replace(
+    changelog: &str,
+    changes: &[DependabotChange],
+) -> Vec<ExistingDependency> {
+    //
+    let mut existing_deps = vec![];
+    let mut current_pos = 0;
+    for line in changelog.split_inclusive('\n') {
+        for change in changes {
+            if line.contains(change.name) {
+                let existing_dep = ExistingDependency {
+                    line_start: current_pos,
+                    line_len: line.len(),
+                    old_ver: todo!(),
+                };
+
+                // Parse old version from semver or SHA1
+
+                existing_deps.push(existing_dep);
+                break;
+            }
+        }
+
+        current_pos += line.len();
+    }
+    existing_deps
+}
+
 fn find_h2_insert_position(changelog_content: &str, version: &str) -> Option<usize> {
     let mut content_pos = 0;
     for l in changelog_content.split_inclusive('\n') {
@@ -56,10 +117,12 @@ fn find_h2_insert_position(changelog_content: &str, version: &str) -> Option<usi
     None
 }
 
+// Returns the start and end position of the target H3 header.
+// Returns None if the header is not found
 fn find_existing_h3_insert_position(
     changelog_content: &str,
     section_header: &str,
-) -> Option<usize> {
+) -> Option<(usize, usize)> {
     let mut content_pos = 0;
     for l in changelog_content.split_inclusive('\n') {
         content_pos += l.len();
@@ -75,7 +138,7 @@ fn find_existing_h3_insert_position(
                     offset_within_section += l.len();
                 }
 
-                return Some(content_pos + offset_within_section);
+                return Some((content_pos, content_pos + offset_within_section));
             }
         } else if l.starts_with("##") {
             return None;
@@ -115,15 +178,10 @@ mod tests {
         DependabotChange::new("`thiserror`", "2.0.4", "2.0.9"),
     ];
 
-    const EXAMPLE_CHANGES_MD: &str = "\
-        - `serde`: 1.0.215 → 1.0.216\n\
-        - `chrono`: 0.4.38 → 0.4.39\n\
-        - `semver`: 1.0.23 → 1.0.24\n\
-        - `env_logger`: 0.11.5 → 0.11.6\n\
-        - `zip`: 2.2.1 → 2.2.2\n\
-        - `wasm-bindgen-futures`: 0.4.47 → 0.4.49\n\
-        - `web-sys`: 0.3.74 → 0.3.76\n\
-        - `thiserror`: 2.0.4 → 2.0.9\n";
+    const EXAMPLE_CHANGES_SMALL: &[DependabotChange<'_>] = &[
+        DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
+        DependabotChange::new("`env_logger`", "0.11.8", "0.12.0"),
+    ];
 
     const EXAMPLE_EMPTY_CHANGELOG_CONTENTS: &str = r##"# Changelog
 
@@ -151,8 +209,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 
 - `chrono`: 0.4.38 → 0.4.39
-- `semver`: 1.0.23 → 1.0.24
 - `env_logger`: 0.11.5 → 0.11.6
+- `semver`: 1.0.23 → 1.0.24
 
 ### Fix
 
@@ -668,6 +726,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             "Dependencies",
         );
 
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+    }
+
+    #[test]
+    fn test_insert_changes_when_changes_section_exists() {
+        let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
+
+        let expect_final_changelog_contents = r##"# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Some feature
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+- `semver`: 1.0.23 → 1.0.24
+- `env_logger`: 0.11.5 → 0.12.0
+- `serde`: 1.0.215 → 1.0.216
+
+### Fix
+
+- Some issue
+"##;
+
+        add_changes_to_changelog_contents(
+            EXAMPLE_CHANGES_SMALL.to_vec(),
+            &mut changelog_content,
+            "Unreleased",
+            "Dependencies",
+        );
+
+        eprintln!("{changelog_content}");
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
     }
 
