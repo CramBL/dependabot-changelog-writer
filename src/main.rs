@@ -1,6 +1,4 @@
-use std::env;
 use std::error::Error;
-use std::path::PathBuf;
 use std::process::ExitCode;
 
 use changelog::add_changes_to_changelog_contents;
@@ -17,25 +15,13 @@ mod git;
 mod test_util;
 mod util;
 
+mod github_env;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn run() -> Result<()> {
     let config = config::Config::new()?;
-
-    // Read the event path environment variable
-    let event_path = env::var("GITHUB_EVENT_PATH").expect("GITHUB_EVENT_PATH not set");
-    log::debug!("event_path={event_path}");
-    let event_path = PathBuf::from(event_path);
-
-    if !event_path.is_file() {
-        config.exit(&format!(
-            "No github event file at: {}",
-            event_path.display()
-        ));
-    }
-
-    // Read and parse the event file
-    let event = GithubEvent::new(event_path)?;
+    let event = GithubEvent::load_from_env()?;
 
     if let Some(pr_body) = event.pr_body() {
         log::debug!("Pull Request Body:\n{pr_body}");
@@ -65,7 +51,7 @@ fn run() -> Result<()> {
 fn main() -> ExitCode {
     env_logger::init();
     if let Err(err) = run() {
-        if let Ok(github_output_path) = env::var("GITHUB_OUTPUT") {
+        if let Ok(github_output_path) = github_env::github_output() {
             config::Config::exit_with_error(&err.to_string(), &github_output_path);
         } else {
             eprintln!("Error: {err} (Failed to access GITHUB_OUTPUT)");

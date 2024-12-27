@@ -6,6 +6,8 @@ use std::{env, io};
 
 use git2::Signature;
 
+use crate::github_env;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[derive(Debug)]
@@ -53,11 +55,10 @@ impl Config {
             return Err("Too many arguments provided".into());
         }
 
-        let github_output_path =
-            env::var("GITHUB_OUTPUT").expect("GITHUB_OUTPUT environment variable not set");
+        let github_output_path = github_env::github_output()?;
 
-        let github_token = env::var("GH_TOKEN").expect("GH_TOKEN not set");
-        let push_token = env::var("PUSH_TOKEN").expect("PUSH_TOKEN not set");
+        let github_token = github_env::gh_token();
+        let push_token = github_env::push_token();
 
         if changelog_path.is_empty() {
             Self::exit_with_error("No changelog path specified", &github_output_path);
@@ -94,14 +95,6 @@ impl Config {
     pub fn exit_with_error(error_msg: &str, github_output_path: &str) -> ! {
         eprintln!("Error: {error_msg}");
         if let Err(e) = Self::write_github_output(error_msg, github_output_path) {
-            eprintln!("Additional error when writing output: {e}");
-        }
-        process::exit(1);
-    }
-
-    pub fn exit(&self, error_msg: &str) -> ! {
-        eprintln!("Error: {error_msg}");
-        if let Err(e) = Self::write_github_output(error_msg, &self.github_output_path) {
             eprintln!("Additional error when writing output: {e}");
         }
         process::exit(1);
