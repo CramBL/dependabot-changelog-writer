@@ -1,5 +1,7 @@
 mod parse;
 
+use parse::find_old_ver_from_line;
+
 use crate::dependabot_changes::{format_changes, DependabotChange};
 
 pub fn add_changes_to_changelog_contents(
@@ -81,22 +83,22 @@ fn find_existing_dependency_lines_to_replace(
     changelog: &str,
     changes: &[DependabotChange],
 ) -> Vec<ExistingDependency> {
-    //
     let mut existing_deps = vec![];
     let mut current_pos = 0;
     for line in changelog.split_inclusive('\n') {
         for change in changes {
-            if line.contains(change.name) {
-                let existing_dep = ExistingDependency {
-                    line_start: current_pos,
-                    line_len: line.len(),
-                    old_ver: todo!(),
-                };
-
+            if let Some(name_pos) = line.find(change.name) {
+                let end_of_name_pos = name_pos + change.name.len();
                 // Parse old version from semver or SHA1
-
-                existing_deps.push(existing_dep);
-                break;
+                if let Some(old_ver) = find_old_ver_from_line(&line[end_of_name_pos..]) {
+                    let existing_dep = ExistingDependency {
+                        line_start: current_pos,
+                        line_len: line.len(),
+                        old_ver,
+                    };
+                    existing_deps.push(existing_dep);
+                    break;
+                }
             }
         }
 
