@@ -19,10 +19,25 @@ jobs:
         run: cargo test
 
       - name: Lint
-        run: cargo clippy
+        run: cargo clippy --workspace -- -W clippy::all
 
       - name: Check formatting
         run: cargo fmt --check
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check spelling of entire workspace
+        uses: crate-ci/typos@master
 
   test-run:
     runs-on: ubuntu-latest
