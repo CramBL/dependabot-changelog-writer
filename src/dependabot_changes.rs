@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum OldVersion<'s> {
     FromDependabot(&'s str),
     FromChangelog(String),
@@ -16,7 +16,7 @@ impl<'s> OldVersion<'s> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct DependabotChange<'s> {
     pub name: &'s str,
     old_version: OldVersion<'s>,
@@ -69,6 +69,13 @@ impl<'s> DependabotChange<'s> {
     pub fn replace_old_version(&mut self, old_version: String) {
         self.old_version = OldVersion::FromChangelog(old_version)
     }
+
+    pub fn old_version(&self) -> &str {
+        match self.old_version {
+            OldVersion::FromDependabot(s) => s,
+            OldVersion::FromChangelog(ref s) => s,
+        }
+    }
 }
 
 impl std::fmt::Display for DependabotChange<'_> {
@@ -80,10 +87,7 @@ impl std::fmt::Display for DependabotChange<'_> {
             sep1 = Self::NAME_OLD_VER_SEPARATOR,
             sep2 = Self::OLD_VER_NEW_VER_SEPARATOR,
             name = self.name,
-            old_ver = match self.old_version {
-                OldVersion::FromDependabot(s) => s,
-                OldVersion::FromChangelog(ref s) => s,
-            },
+            old_ver = self.old_version(),
             new_ver = self.new_version
         )
     }

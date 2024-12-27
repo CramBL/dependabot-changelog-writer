@@ -3,7 +3,7 @@ mod parse;
 use crate::dependabot_changes::{format_changes, DependabotChange};
 
 pub fn add_changes_to_changelog_contents(
-    changes: Vec<DependabotChange>,
+    mut changes: Vec<DependabotChange>,
     changelog_content: &mut String,
     version_header: &str,
     section_header: &str,
@@ -15,33 +15,28 @@ pub fn add_changes_to_changelog_contents(
     // the size of the existing content
     changelog_content.reserve(changes_formatted_len + h3_header.len() + 3); // +3 for the worst case of adding 3 newlines
 
+    #[cfg(debug_assertions)]
+    let change_log_str_capacity = changelog_content.capacity();
+
     let h2_insert_pos = parse::find_h2_insert_position(changelog_content, version_header)
         .expect("Could not find the specified version h2 header");
 
     if let Some((existing_h3_start, existing_h3_insert_pos)) =
         parse::find_existing_h3_insert_position(&changelog_content[h2_insert_pos..], section_header)
     {
-        let abs_h3_start = h2_insert_pos + existing_h3_start;
-        let abs_h3_insert_pos = h2_insert_pos + existing_h3_insert_pos;
-        // Parse the existing section content to see if it already contains mentions of bumping the same dependencies we are
-        // about to add.
-        let mut replace_line_at: Vec<(usize, usize)> = vec![];
-        let h3_section = &changelog_content[abs_h3_start..abs_h3_insert_pos];
-        let mut h3_section_pos = 0;
-        for line in h3_section.split_inclusive('\n') {
-            for change in &changes {
-                if line.contains(change.name) {
-                    replace_line_at.push((h3_section_pos, line.len()));
-                    break;
-                }
-            }
+        let existing_deps = parse::find_existing_dependency_lines_to_replace(
+            &changelog_content[existing_h3_start..],
+            &mut changes,
+        );
 
-            h3_section_pos += line.len();
-        }
         let mut string_offset = 0;
-        for (line_start, line_len) in replace_line_at.into_iter().rev() {
-            changelog_content.replace_range(line_start..line_len, "");
-            string_offset += line_len;
+        for line in existing_deps.iter().rev() {
+            eprintln!(
+                "Removing: '{}'",
+                &changelog_content[line.range_offset(existing_h3_start)]
+            );
+            changelog_content.replace_range(line.range_offset(existing_h3_start), "");
+            string_offset += line.range().len();
         }
 
         let changes_md = format_changes(changes);
@@ -69,41 +64,12 @@ pub fn add_changes_to_changelog_contents(
         h3_header.push('\n');
         changelog_content.insert_str(h2_insert_pos + new_h3_insert_pos, &h3_header);
     }
-}
 
-#[derive(Debug)]
-struct ExistingDependency {
-    line_start: usize,
-    line_len: usize,
-    old_ver: String,
-}
-
-fn find_existing_dependency_lines_to_replace(
-    changelog: &str,
-    changes: &[DependabotChange],
-) -> Vec<ExistingDependency> {
-    let mut existing_deps = vec![];
-    let mut current_pos = 0;
-    for line in changelog.split_inclusive('\n') {
-        for change in changes {
-            if let Some(name_pos) = line.find(change.name) {
-                let end_of_name_pos = name_pos + change.name.len();
-                // Parse old version from semver or SHA1
-                if let Some(old_ver) = parse::find_old_ver_from_line(&line[end_of_name_pos..]) {
-                    let existing_dep = ExistingDependency {
-                        line_start: current_pos,
-                        line_len: line.len(),
-                        old_ver,
-                    };
-                    existing_deps.push(existing_dep);
-                    break;
-                }
-            }
-        }
-
-        current_pos += line.len();
-    }
-    existing_deps
+    debug_assert_eq!(
+        change_log_str_capacity,
+        changelog_content.capacity(),
+        "Changelog capacity changed after reserving extra memory"
+    );
 }
 
 #[cfg(test)]
@@ -111,23 +77,7 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_str_eq;
 
-    const EXAMPLE_CHANGES: &[DependabotChange<'_>] = &[
-        DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
-        DependabotChange::new("`chrono`", "0.4.38", "0.4.39"),
-        DependabotChange::new("`semver`", "1.0.23", "1.0.24"),
-        DependabotChange::new("`env_logger`", "0.11.5", "0.11.6"),
-        DependabotChange::new("`zip`", "2.2.1", "2.2.2"),
-        DependabotChange::new("`wasm-bindgen-futures`", "0.4.47", "0.4.49"),
-        DependabotChange::new("`web-sys`", "0.3.74", "0.3.76"),
-        DependabotChange::new("`thiserror`", "2.0.4", "2.0.9"),
-    ];
-
-    const EXAMPLE_CHANGES_SMALL: &[DependabotChange<'_>] = &[
-        DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
-        DependabotChange::new("`env_logger`", "0.11.8", "0.12.0"),
-    ];
-
-    use crate::test_util::example_changelogs::*;
+    use crate::test_util::*;
 
     #[test]
     fn test_add_changes_to_changelog_content_small_changelog() {
@@ -256,6 +206,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
     }
 
+    /// The section already contains the env_logger dependency so we expect that line to be
+    /// removed and replaced by a new entry showing the highest/newest version it was bumped to
+    /// but not replacing the old/former version from the previous entry as that would be misleading
     #[test]
     fn test_insert_changes_when_changes_section_exists() {
         let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
@@ -277,8 +230,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `chrono`: 0.4.38 → 0.4.39
 - `semver`: 1.0.23 → 1.0.24
-- `env_logger`: 0.11.5 → 0.12.0
 - `serde`: 1.0.215 → 1.0.216
+- `env_logger`: 0.11.5 → 0.12.0
 
 ### Fix
 
@@ -292,7 +245,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             "Dependencies",
         );
 
-        eprintln!("{changelog_content}");
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
     }
 }

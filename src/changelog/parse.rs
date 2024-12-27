@@ -1,3 +1,7 @@
+use std::ops;
+
+use crate::dependabot_changes::DependabotChange;
+
 /// Attempts to find the "old version" in a line describing a dependency update
 /// will attempt to find semver or SHA1
 /// The results will be most reliable if the line to start from after the name of the dependency
@@ -168,10 +172,55 @@ pub fn find_new_h3_insert_position(changelog_content: &str) -> usize {
     content_pos
 }
 
+#[derive(Debug)]
+pub struct DependencyEntryLine {
+    line_start: usize,
+    line_len: usize,
+}
+
+impl DependencyEntryLine {
+    pub fn range(&self) -> ops::Range<usize> {
+        self.line_start..self.line_start + self.line_len
+    }
+
+    pub fn range_offset(&self, offset: usize) -> ops::Range<usize> {
+        let start = self.line_start + offset;
+        start..start + self.line_len
+    }
+}
+
+pub fn find_existing_dependency_lines_to_replace(
+    changelog: &str,
+    changes: &mut [DependabotChange],
+) -> Vec<DependencyEntryLine> {
+    let mut existing_deps = vec![];
+    let mut current_pos = 0;
+    for line in changelog.split_inclusive('\n') {
+        for change in &mut *changes {
+            if let Some(name_pos) = line.find(change.name) {
+                let end_of_name_pos = name_pos + change.name.len();
+                // Parse old version from semver or SHA1
+                if let Some(old_ver) = find_old_ver_from_line(&line[end_of_name_pos..]) {
+                    change.replace_old_version(old_ver);
+                    let existing_dep = DependencyEntryLine {
+                        line_start: current_pos,
+                        line_len: line.len(),
+                    };
+                    existing_deps.push(existing_dep);
+                    break;
+                }
+            }
+        }
+
+        current_pos += line.len();
+    }
+    existing_deps
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_util::example_changelogs::*;
+    use crate::test_util::*;
     use pretty_assertions::assert_str_eq;
 
     #[test]
@@ -244,9 +293,6 @@ mod tests {
     fn test_find_insert_position_version_used_changelog() {
         let insert_pos = find_h2_insert_position(EXAMPLE_USED_CHANGELOG_CONTENTS, "1.3.5").unwrap();
         assert_eq!(insert_pos, 281);
-
-        let remainder = EXAMPLE_USED_CHANGELOG_CONTENTS[insert_pos..].to_owned();
-        eprintln!("{}", remainder);
     }
 
     #[test]
@@ -258,5 +304,22 @@ mod tests {
         let insert_h3_pos =
             find_existing_h3_insert_position(&changelog_content[insert_pos..], "Dependencies");
         assert_eq!(insert_h3_pos, None);
+    }
+
+    #[test]
+    fn test_find_existing_dependencies_to_replace_simple() {
+        let changelog = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES;
+        let mut changes = EXAMPLE_CHANGES_SMALL.to_vec();
+        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes);
+        assert_eq!(changes[0], EXAMPLE_CHANGES_SMALL[0]);
+        assert_eq!(
+            changes[1].old_version(),
+            "0.11.5",
+            "Expected env_logger version to be replaced by the existing entry from the changelog"
+        );
+
+        assert_eq!(to_replace.len(), 1);
+        assert_eq!(to_replace[0].line_start, 345);
+        assert_eq!(to_replace[0].line_len, 34);
     }
 }
