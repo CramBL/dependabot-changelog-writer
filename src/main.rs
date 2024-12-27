@@ -15,6 +15,7 @@ mod git;
 
 #[cfg(test)]
 mod test_util;
+mod util;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -49,8 +50,7 @@ fn run() -> Result<()> {
         if config.dry_run() {
             log::debug!("Dry run: Skipping commit");
             let orig_changelog = config.read_changelog()?;
-            let changeset = difference::Changeset::new(&orig_changelog, &changelog_contents, "\n");
-            log::info!("{changeset}");
+            util::print_diff(&orig_changelog, &changelog_contents);
         } else {
             config.write_changelog(changelog_contents)?;
             git::add_commit_and_push(&config, "origin", event.branch_ref(), event.branch_name())?;
