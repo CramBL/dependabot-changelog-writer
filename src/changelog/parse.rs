@@ -2,11 +2,26 @@
 /// will attempt to find semver or SHA1
 /// The results will be most reliable if the line to start from after the name of the dependency
 /// e.g. a line such as 'update `docker` from 1.0.2 to 1.0.5' should passed as 'from 1.0.2 to 1.0.5'
-/// Guaranteed to correctly identify the version from strings such as:
-/// - 'from 1.0.2 to 1.0.5'
-/// - 'from 3d58c274f17dffee475a5520cbe67f0a882c4dbb to 7ca345011ac4304463197fac0e56eab1bc7e6af0'
-/// - ' 0.11.5 → 0.11.6'
-/// - 'from `b0c35f6` to `c8bd600`'
+///
+/// # Examples
+///
+/// ```
+/// let line = "from 1.0.2 to 1.0.5"
+/// let old_ver = find_old_ver_from_line(line).unwrap();
+/// assert_eq(&old_ver, "1.0.2");
+///
+/// let line = "from 3d58c274f17dffee475a5520cbe67f0a882c4dbb to 7ca345011ac4304463197fac0e56eab1bc7e6af0"
+/// let old_ver = find_old_ver_from_line(line).unwrap();
+/// assert_eq(&old_ver, "3d58c274f17dffee475a5520cbe67f0a882c4dbb");
+///
+/// let line = " 0.11.5 → 0.11.6"
+/// let old_ver = find_old_ver_from_line(line).unwrap();
+/// assert_eq(&old_ver, "0.11.5");
+///
+/// let line = "from `b0c35f6` to `c8bd600`"
+/// let old_ver = find_old_ver_from_line(line).unwrap();
+/// assert_eq(&old_ver, "`b0c35f6`");
+/// ```
 pub(crate) fn find_old_ver_from_line(line: &str) -> Option<String> {
     enum ParseSt {
         BeforeOld,
