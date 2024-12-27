@@ -10,6 +10,10 @@ use crate::github_env;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn next_arg_trimmed(args: &mut impl Iterator<Item = String>) -> Option<String> {
+    Some(args.next()?.trim().to_owned())
+}
+
 #[derive(Debug)]
 pub struct Config {
     dry_run: bool,
@@ -25,25 +29,25 @@ impl Config {
     pub fn new() -> Result<Self> {
         let mut args = env::args().skip(1);
 
-        let changelog_path = args.next().ok_or("Missing changelog path")?;
+        let changelog_path = next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
         log::debug!("changelog_path={changelog_path}");
 
-        let commit_message = args.next().ok_or("Missing commit message")?;
+        let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit message")?;
         log::debug!("commit_message={commit_message}");
 
-        let committer_name = args.next().ok_or("Missing committer name")?;
+        let committer_name = next_arg_trimmed(&mut args).ok_or("Missing committer name")?;
         log::debug!("committer_name={committer_name}");
 
-        let committer_email = args.next().ok_or("Missing committer email")?;
+        let committer_email = next_arg_trimmed(&mut args).ok_or("Missing committer email")?;
         log::debug!("committer_email={committer_email}");
 
-        let version_header = args.next().ok_or("Missing section header")?;
+        let version_header = next_arg_trimmed(&mut args).ok_or("Missing section header")?;
         log::debug!("version_header={version_header}");
 
-        let section_header = args.next().ok_or("Missing section header")?;
+        let section_header = next_arg_trimmed(&mut args).ok_or("Missing section header")?;
         log::debug!("section_header={section_header}");
 
-        let push_changes = args.next().ok_or("Missing push_changes setting")?;
+        let push_changes = next_arg_trimmed(&mut args).ok_or("Missing push_changes setting")?;
         log::debug!("push_changes={push_changes}");
 
         let dry_run = !push_changes.eq_ignore_ascii_case("true");
