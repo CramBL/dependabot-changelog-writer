@@ -29,11 +29,10 @@ pub fn add_changes_to_changelog_contents(
         );
 
         let mut string_offset = 0;
+        // Iterate in reverse to go towards to the start of the changelog string
+        // that way the next content we might have to update doesn't change position
+        // and we don't have to keep track of an intermediate offset
         for line in existing_deps.iter().rev() {
-            eprintln!(
-                "Removing: '{}'",
-                &changelog_content[line.range_offset(existing_h3_start)]
-            );
             changelog_content.replace_range(line.range_offset(existing_h3_start), "");
             string_offset += line.range().len();
         }
