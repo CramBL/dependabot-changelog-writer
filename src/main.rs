@@ -50,13 +50,11 @@ fn run() -> Result<()> {
 
 fn main() -> ExitCode {
     env_logger::init();
-    if let Err(err) = run() {
-        if let Ok(github_output_path) = github_env::github_output() {
-            config::Config::exit_with_error(&err.to_string(), &github_output_path);
-        } else {
-            eprintln!("Error: {err} (Failed to access GITHUB_OUTPUT)");
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("Error: {e}");
+            ExitCode::FAILURE
         }
-        return ExitCode::FAILURE;
     }
-    ExitCode::SUCCESS
 }

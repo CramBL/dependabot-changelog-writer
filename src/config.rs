@@ -19,9 +19,6 @@ pub struct Config {
     committer_email: String,
     version_header: String,
     section_header: String,
-    github_output_path: String,
-    github_token: String,
-    push_token: String,
 }
 
 impl Config {
@@ -55,20 +52,17 @@ impl Config {
             return Err("Too many arguments provided".into());
         }
 
-        let github_output_path = github_env::github_output()?;
-
-        let github_token = github_env::gh_token();
-        let push_token = github_env::push_token();
+        let github_output_path = github_env::github_output();
 
         if changelog_path.is_empty() {
-            Self::exit_with_error("No changelog path specified", &github_output_path);
+            Self::exit_with_error("No changelog path specified", github_output_path);
         }
 
         let changelog_path = PathBuf::from(changelog_path);
         if !changelog_path.is_file() {
             Self::exit_with_error(
                 "The specified changelog could not be found",
-                &github_output_path,
+                github_output_path,
             );
         }
 
@@ -80,9 +74,6 @@ impl Config {
             committer_email,
             version_header,
             section_header,
-            github_output_path,
-            github_token,
-            push_token,
         })
     }
 
@@ -102,14 +93,6 @@ impl Config {
 
     pub fn commit_signature(&self) -> std::result::Result<Signature, git2::Error> {
         Signature::now(&self.committer_name, &self.committer_email)
-    }
-
-    pub fn github_token(&self) -> &str {
-        &self.github_token
-    }
-
-    pub fn push_token(&self) -> &str {
-        &self.push_token
     }
 
     pub fn commit_message(&self) -> &str {
