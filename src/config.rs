@@ -15,13 +15,29 @@ fn next_arg_trimmed(args: &mut impl Iterator<Item = String>) -> Option<String> {
 }
 
 #[derive(Debug)]
+pub enum VersionHeader {
+    Unreleased,
+    Custom(String),
+}
+
+impl VersionHeader {
+    pub fn new(version_header: String) -> Self {
+        if version_header.eq_ignore_ascii_case("unreleased") {
+            Self::Unreleased
+        } else {
+            Self::Custom(version_header)
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Config {
     dry_run: bool,
     changelog_path: PathBuf,
     commit_message: String,
     committer_name: String,
     committer_email: String,
-    version_header: String,
+    version_header: VersionHeader,
     section_header: String,
 }
 
@@ -76,7 +92,7 @@ impl Config {
             commit_message,
             committer_name,
             committer_email,
-            version_header,
+            version_header: VersionHeader::new(version_header),
             section_header,
         })
     }
@@ -103,7 +119,7 @@ impl Config {
         &self.commit_message
     }
 
-    pub fn version_header(&self) -> &str {
+    pub fn version_header(&self) -> &VersionHeader {
         &self.version_header
     }
 
