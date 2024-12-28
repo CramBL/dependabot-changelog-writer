@@ -1,2 +1,2 @@
 [files]
-extend-exclude = ["src/test_util"]
+extend-exclude = ["src/test_util", "test_data"]
