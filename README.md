@@ -1,3 +1,6 @@
+[![CI](https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg)](https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/CramBL/dependabot-changelog-writer/total)
+
 # dependabot-changelog-writer
 
 Generate a changelog entry from a dependabot PR
