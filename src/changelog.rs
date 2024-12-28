@@ -275,4 +275,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
     }
+
+    #[test]
+    fn test_insert_changes_in_previous_version_no_trailing_newline() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS_NO_NEWLINE.to_owned();
+
+        let expect_final_changelog_contents = r##"# Changelog
+
+## [Unreleased]
+
+## [0.1.0] - 2024-12-25
+
+### Added
+
+- Another changelog for testing alternate dependabot-changelog-writer scenarios
+
+### Dependencies
+
+- `serde`: 1.0.215 → 1.0.216
+- `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0
+
+"##;
+
+        add_changes_to_changelog_contents(
+            EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec(),
+            &mut changelog_content,
+            "0.1.0",
+            "Dependencies",
+        );
+
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+    }
 }
