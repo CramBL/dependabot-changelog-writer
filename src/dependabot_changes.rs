@@ -115,6 +115,9 @@ pub fn format_changes(changes: Vec<DependabotChange>) -> String {
         markdown.push_str(&change.to_string());
     }
 
+    debug_assert!(!markdown.starts_with("\n\n"));
+    debug_assert!(!markdown.ends_with("\n\n"));
+
     // Return the final markdown string
     markdown
 }
