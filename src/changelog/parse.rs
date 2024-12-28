@@ -297,9 +297,9 @@ mod tests {
 
     #[test]
     fn test_find_insert_position_small_changelog() {
-        let changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS;
+        let changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS_NO_NEWLINE;
         let insert_pos = find_h2_insert_position(changelog_content, "Unreleased").unwrap();
-        assert_eq!(insert_pos, 269);
+        assert_eq!(insert_pos, 29);
 
         let insert_h3_pos =
             find_existing_h3_insert_position(&changelog_content[insert_pos..], "Dependencies");

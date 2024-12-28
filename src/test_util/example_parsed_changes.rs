@@ -15,3 +15,12 @@ pub const EXAMPLE_CHANGES_SMALL: &[DependabotChange<'_>] = &[
     DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
     DependabotChange::new("`env_logger`", "0.11.8", "0.12.0"),
 ];
+
+pub const EXAMPLE_CHANGES_SMALL_WITH_SHA1: &[DependabotChange<'_>] = &[
+    DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
+    DependabotChange::new(
+        "`docker/login-action`",
+        "3d58c274f17dffee475a5520cbe67f0a882c4dbb",
+        "7ca345011ac4304463197fac0e56eab1bc7e6af0",
+    ),
+];

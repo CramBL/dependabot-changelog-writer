@@ -13,7 +13,7 @@ pub fn add_changes_to_changelog_contents(
     let mut h3_header = format!("### {section_header}\n");
     // Reserve for the new changelog entry to avoid the worst case of allocating
     // the size of the existing content
-    changelog_content.reserve(changes_formatted_len + h3_header.len() + 3); // +3 for the worst case of adding 3 newlines
+    changelog_content.reserve(changes_formatted_len + h3_header.len() + 4); // +4 for the worst case of adding 4 newlines
 
     let change_log_str_capacity = changelog_content.capacity();
 
@@ -38,23 +38,24 @@ pub fn add_changes_to_changelog_contents(
         }
 
         let changes_md = format_changes(changes);
-        debug_assert!(!changes_md.starts_with("\n\n"));
-        debug_assert!(!changes_md.ends_with("\n\n"));
         changelog_content.insert_str(
             h2_insert_pos + existing_h3_insert_pos - string_offset,
             &changes_md,
         );
     } else {
         let changes_md = format_changes(changes);
-        debug_assert!(!changes_md.starts_with("\n\n"));
-        debug_assert!(!changes_md.ends_with("\n\n"));
         let new_h3_insert_pos =
             parse::find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
         let insert_pos = h2_insert_pos + new_h3_insert_pos;
 
-        // Insert a leading newline if we are not inserting the header just after two newlines
+        // Ensure that we are inserting after 2 newlines
+        // by counting the the newlines in the previous two characters
+        // and inserting newlines if needed.
         let prev_two_chars = &changelog_content[insert_pos - 2..insert_pos];
-        if prev_two_chars != "\n\n" {
+        let prev_two_newline_count = prev_two_chars
+            .chars()
+            .fold(0, |acc, c| acc + (c == '\n') as u8);
+        for _ in 0..(2 - prev_two_newline_count) {
             h3_header.insert(0, '\n');
         }
         h3_header.push('\n');
@@ -82,11 +83,6 @@ mod tests {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
 
         let expect_final_changelog_contents = r#"# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
@@ -240,6 +236,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             EXAMPLE_CHANGES_SMALL.to_vec(),
             &mut changelog_content,
             "Unreleased",
+            "Dependencies",
+        );
+
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+    }
+
+    #[test]
+    fn test_insert_changes_in_previous_version_no_trailing_newline() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS_NO_NEWLINE.to_owned();
+
+        let expect_final_changelog_contents = r##"# Changelog
+
+## [Unreleased]
+
+## [0.1.0] - 2024-12-25
+
+### Added
+
+- Another changelog for testing alternate dependabot-changelog-writer scenarios
+
+### Dependencies
+
+- `serde`: 1.0.215 → 1.0.216
+- `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0
+
+"##;
+
+        add_changes_to_changelog_contents(
+            EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec(),
+            &mut changelog_content,
+            "0.1.0",
             "Dependencies",
         );
 
