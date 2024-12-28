@@ -1,6 +1,6 @@
 use std::ops;
 
-use crate::dependabot_changes::DependabotChange;
+use crate::{config::VersionHeader, dependabot_changes::DependabotChange};
 
 /// Attempts to find the "old version" in a line describing a dependency update
 /// will attempt to find semver or SHA1
@@ -115,15 +115,32 @@ pub(crate) fn find_old_ver_from_line(line: &str) -> Option<String> {
     None
 }
 
-pub fn find_h2_insert_position(changelog_content: &str, version: &str) -> Option<usize> {
+pub fn find_h2_insert_position(changelog_content: &str, version: &VersionHeader) -> Option<usize> {
     let mut content_pos = 0;
-    for l in changelog_content.split_inclusive('\n') {
-        if l.starts_with("##") && l[2..].contains(version) {
-            return Some(content_pos + l.len());
-        }
 
+    // NOTE: We're matching in every iteration but the performance impact is negligible
+    // and the alternative is to duplicate the surrounding loop. We do this for simplicity.
+    for l in changelog_content.split_inclusive('\n') {
+        if let Some(stripped) = l.strip_prefix("##") {
+            match version {
+                // Match any spelling of 'unreleased' e.g. 'UNRELEASED' | 'Unreleased' | '[unreleased]' | etc..
+                VersionHeader::Unreleased => {
+                    if stripped.to_lowercase().contains("unreleased") {
+                        return Some(content_pos + l.len());
+                    }
+                }
+
+                // Match exactly the specified string
+                VersionHeader::Custom(v) => {
+                    if stripped.contains(v) {
+                        return Some(content_pos + l.len());
+                    }
+                }
+            }
+        }
         content_pos += l.len();
     }
+
     None
 }
 
@@ -264,7 +281,8 @@ mod tests {
     #[test]
     fn test_find_insert_position_empty_changelog() {
         let changelog_content = EXAMPLE_EMPTY_CHANGELOG_CONTENTS;
-        let insert_pos = find_h2_insert_position(changelog_content, "Unreleased").unwrap();
+        let insert_pos =
+            find_h2_insert_position(changelog_content, &VersionHeader::Unreleased).unwrap();
         assert_eq!(insert_pos, 269);
 
         let insert_h3_pos =
@@ -274,14 +292,18 @@ mod tests {
 
     #[test]
     fn test_find_insert_position_version_empty_changelog() {
-        let insert_pos = find_h2_insert_position(EXAMPLE_EMPTY_CHANGELOG_CONTENTS, "0.1.0");
+        let insert_pos = find_h2_insert_position(
+            EXAMPLE_EMPTY_CHANGELOG_CONTENTS,
+            &VersionHeader::new("0.1.0".to_owned()),
+        );
         assert_eq!(insert_pos, None);
     }
 
     #[test]
     fn test_find_insert_position_used_changelog() {
         let changelog_content = EXAMPLE_USED_CHANGELOG_CONTENTS;
-        let insert_pos = find_h2_insert_position(changelog_content, "unreleased").unwrap();
+        let insert_pos =
+            find_h2_insert_position(changelog_content, &VersionHeader::Unreleased).unwrap();
         assert_eq!(insert_pos, 269);
 
         let insert_h3_pos =
@@ -291,14 +313,19 @@ mod tests {
 
     #[test]
     fn test_find_insert_position_version_used_changelog() {
-        let insert_pos = find_h2_insert_position(EXAMPLE_USED_CHANGELOG_CONTENTS, "1.3.5").unwrap();
+        let insert_pos = find_h2_insert_position(
+            EXAMPLE_USED_CHANGELOG_CONTENTS,
+            &VersionHeader::Custom("1.3.5".to_owned()),
+        )
+        .unwrap();
         assert_eq!(insert_pos, 281);
     }
 
     #[test]
     fn test_find_insert_position_small_changelog() {
         let changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS_NO_NEWLINE;
-        let insert_pos = find_h2_insert_position(changelog_content, "Unreleased").unwrap();
+        let insert_pos =
+            find_h2_insert_position(changelog_content, &VersionHeader::Unreleased).unwrap();
         assert_eq!(insert_pos, 29);
 
         let insert_h3_pos =

@@ -1,11 +1,14 @@
 mod parse;
 
-use crate::dependabot_changes::{format_changes, DependabotChange};
+use crate::{
+    config::VersionHeader,
+    dependabot_changes::{format_changes, DependabotChange},
+};
 
 pub fn add_changes_to_changelog_contents(
     mut changes: Vec<DependabotChange>,
     changelog_content: &mut String,
-    version_header: &str,
+    version_header: &VersionHeader,
     section_header: &str,
 ) {
     let changes_formatted_len = changes.iter().fold(0, |sum, c| c.formatted_len() + sum);
@@ -111,7 +114,7 @@ mod tests {
         add_changes_to_changelog_contents(
             EXAMPLE_CHANGES.to_vec(),
             &mut changelog_content,
-            "Unreleased",
+            &VersionHeader::new("Unreleased".into()),
             "Dependencies",
         );
 
@@ -157,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             EXAMPLE_CHANGES.to_vec(),
             &mut changelog_content,
-            "Unreleased",
+            &VersionHeader::new("Unreleased".into()),
             "Dependencies",
         );
 
@@ -193,7 +196,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             EXAMPLE_CHANGES.to_vec(),
             &mut changelog_content,
-            "Unreleased",
+            &VersionHeader::new("Unreleased".to_owned()),
             "Dependencies",
         );
 
@@ -235,7 +238,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             EXAMPLE_CHANGES_SMALL.to_vec(),
             &mut changelog_content,
-            "Unreleased",
+            &VersionHeader::new("Unreleased".to_owned()),
             "Dependencies",
         );
 
@@ -266,7 +269,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec(),
             &mut changelog_content,
-            "0.1.0",
+            &VersionHeader::new("0.1.0".to_owned()),
             "Dependencies",
         );
 
