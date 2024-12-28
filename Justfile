@@ -5,7 +5,7 @@ run \
     $GITHUB_OUTPUT \
     $GH_TOKEN \
     $PUSH_TOKEN \
-    $GITHUB_EVENT_PATH \
+    $USE_FAKE_EVENT_JSON \
     CHANGELOG \
     COMMIT_MSG \
     COMMITTER_NAME \
@@ -19,7 +19,7 @@ run-fake: (run \
             "test_github_output_path" \
             "test_github_token" \
             "test_push_token" \
-            "Cargo.toml" \
+            "test_data/event_json/minimal_pr_opened.json" \
             "CHANGELOG.md" \
             "fake commit message" \
             "fake commit name" \
