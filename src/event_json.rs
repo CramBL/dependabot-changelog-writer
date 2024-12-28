@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 use crate::github_env::github_event_path;
 
@@ -12,20 +12,26 @@ pub struct GithubEvent {
 impl GithubEvent {
     /// Read and parse the event file
     pub fn load_from_env() -> Result<Self> {
-        // Read the event path environment variable
-        let event_path = github_event_path();
-        log::debug!("event_path={event_path}");
-        let event_path = PathBuf::from(event_path);
+        // Read the event path environment variable, use the fake one event JSON if it is set
+        let event_path = match env::var("USE_FAKE_EVENT_JSON") {
+            Ok(fake_event_json) => PathBuf::from(fake_event_json),
+            Err(_) => PathBuf::from(github_event_path()),
+        };
+        log::debug!("event_path={}", event_path.display());
 
         if !event_path.is_file() {
             return Err(format!("No github event file at: {}", event_path.display()).into());
         }
 
-        GithubEvent::new(event_path)
+        Self::from_path(event_path)
     }
 
-    pub fn new(event_json_path: PathBuf) -> Result<Self> {
+    pub fn from_path(event_json_path: PathBuf) -> Result<Self> {
         let event_json = std::fs::read_to_string(event_json_path)?;
+        Self::new(event_json)
+    }
+
+    pub fn new(event_json: String) -> Result<Self> {
         log::debug!("event_json={event_json}");
         let event: serde_json::Value =
             serde_json::from_str(&event_json).map_err(|e| format!("Malformed event JSON: {e}"))?;
