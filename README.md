@@ -50,7 +50,7 @@ jobs:
 If you have checks that are gets invalidated by in-workflow pushes you can add a PAT to make CI trigger on the push
 
 ```yaml
-- uses: crambl/dependabot-changelog-writer@v0.1.2
+- uses: crambl/dependabot-changelog-writer@v1.0.0
       with:
         push_token: ${{ secrets.PAT_PUSH }} # Just needs 'public_repo' scope if your repo is public otherwise needs 'repo'
 ```
