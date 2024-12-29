@@ -42,7 +42,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Result<Self> {
+    pub fn from_env_args() -> Result<Self> {
         let mut args = env::args().skip(1);
 
         let changelog_path = next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
@@ -86,15 +86,35 @@ impl Config {
             );
         }
 
-        Ok(Self {
+        Ok(Self::new(
             dry_run,
             changelog_path,
             commit_message,
             committer_name,
             committer_email,
-            version_header: VersionHeader::new(version_header),
+            VersionHeader::new(version_header),
             section_header,
-        })
+        ))
+    }
+
+    pub const fn new(
+        dry_run: bool,
+        changelog_path: PathBuf,
+        commit_message: String,
+        committer_name: String,
+        committer_email: String,
+        version_header: VersionHeader,
+        section_header: String,
+    ) -> Self {
+        Self {
+            dry_run,
+            changelog_path,
+            commit_message,
+            committer_name,
+            committer_email,
+            version_header,
+            section_header,
+        }
     }
 
     fn write_github_output(error_msg: &str, github_output_path: &str) -> Result<()> {
