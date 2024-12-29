@@ -225,7 +225,7 @@ Bumps bar from 0.1.0 to 0.2.0
 </details>
 Updates baz from 2024.1.2 to 2025.1.2-rc1
 ";
-        let changes = parse_body(&pr_body);
+        let changes = parse_body(pr_body);
         assert_eq!(changes.len(), 2);
         assert_eq!(changes[0], DependabotChange::new("foo", "0.1.0a", "0.1.1b"));
         assert_eq!(changes[1], DependabotChange::new("baz", "2024.1.2", "2025.1.2-rc1"));
