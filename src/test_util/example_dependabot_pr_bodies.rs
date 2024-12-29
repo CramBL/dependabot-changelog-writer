@@ -1,4 +1,5 @@
-pub(crate) const EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER: &str = r##"Bumps the github_actions group with 2 updates in the / directory: [crate-ci/typos](https://github.com/crate-ci/typos) and [docker/login-action](https://github.com/docker/login-action).
+#[expect(clippy::invisible_characters)]
+pub(crate) const EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER: &str = r#"Bumps the github_actions group with 2 updates in the / directory: [crate-ci/typos](https://github.com/crate-ci/typos) and [docker/login-action](https://github.com/docker/login-action).
 
 Updates `crate-ci/typos` from 1.27.0 to 1.28.4
 <details>
@@ -166,9 +167,10 @@ You can trigger Dependabot actions by commenting on this PR:
 - `@dependabot unignore <dependency name> <ignore condition>` will remove the ignore condition of the specified dependency and ignore conditions
 
 
-</details>"##;
+</details>"#;
 
-pub(crate) const EXAMPLE_DEPENDABOT_BODY_PLOTINATOR: &str = r##"Bumps the cargo_dependencies group with 7 updates in the / directory:
+#[expect(clippy::invisible_characters)]
+pub(crate) const EXAMPLE_DEPENDABOT_BODY_PLOTINATOR: &str = r#"Bumps the cargo_dependencies group with 7 updates in the / directory:
 
 | Package | From | To |
 | --- | --- | --- |
@@ -451,4 +453,4 @@ You can trigger Dependabot actions by commenting on this PR:
 - `@dependabot unignore <dependency name> <ignore condition>` will remove the ignore condition of the specified dependency and ignore conditions
 
 
-</details>"##;
+</details>"#;

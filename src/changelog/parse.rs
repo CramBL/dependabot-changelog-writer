@@ -196,6 +196,7 @@ pub struct DependencyEntryLine {
 }
 
 impl DependencyEntryLine {
+    #[expect(dead_code)]
     pub fn range(&self) -> ops::Range<usize> {
         self.line_start..self.line_start + self.line_len
     }
@@ -243,7 +244,7 @@ mod tests {
     #[test]
     fn test_find_old_version_docker_sha1() {
         let test_str = "- Bump `docker/login-action` from 3d58c274f17dffee475a5520cbe67f0a882c4dbb to 7ca345011ac4304463197fac0e56eab1bc7e6af0 ([#39](https://github.com/luftkode/settings-manager/pull/39))";
-        let old_ver = find_old_ver_from_line(&test_str).unwrap();
+        let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "3d58c274f17dffee475a5520cbe67f0a882c4dbb");
     }
 
@@ -251,22 +252,26 @@ mod tests {
     fn test_find_old_version_actions_toolkit_semver() {
         let test_str =
             " 0.40.0 to 0.42.0</li> ([#39](https://github.com/luftkode/settings-manager/pull/39))";
-        let old_ver = find_old_ver_from_line(&test_str).unwrap();
+        let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "0.40.0");
     }
 
     /// Non-trivial due to '@' as it has a utf-8 length of 3
     #[test]
     fn test_find_old_version_actions_toolkit_semver_non_trivial() {
+        #[expect(
+            clippy::invisible_characters,
+            reason = "The '@' contains invisible characters, but this is in fact what we need to handle as it is verbetum content from a dependabot PR"
+        )]
         let test_str = "- Bump `<code>@​docker/actions-toolkit</code>` from 0.40.0 to 0.42.0</li>";
-        let old_ver = find_old_ver_from_line(&test_str).unwrap();
+        let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "0.40.0");
     }
 
     #[test]
     fn test_find_old_version_docker_semver_arrow_sep() {
         let test_str = "- Bump `docker/login-action`: 0.11.5 → 0.11.6";
-        let old_ver = find_old_ver_from_line(&test_str).unwrap();
+        let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "0.11.5");
     }
 
@@ -274,7 +279,7 @@ mod tests {
     fn test_find_old_version_submodule_short_sha1() {
         let test_str =
             "Bumps [some-submodule](https://github.com/org/repo) from `b0c35f6` to `c8bd600`.";
-        let old_ver = find_old_ver_from_line(&test_str).unwrap();
+        let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "`b0c35f6`");
     }
 
