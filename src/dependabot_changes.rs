@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn test_parse_body() {
-        let changes_md = format_changes(parse_body(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER));
+        let changes_md = format_changes(parse_body(DEPENDABOT_BODY_2_ACTIONS_SHA_SEMVER));
         let expect_md = "\
         - `crate-ci/typos`: 1.27.0 → 1.28.4\n\
         - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0\n";
@@ -161,13 +161,13 @@ mod tests {
 
     #[test]
     fn test_parse_example_to_changes() {
-        let changes = parse_changes(EXAMPLE_DEPENDABOT_BODY_SETTINGS_MANAGER);
+        let changes = parse_changes(DEPENDABOT_BODY_2_ACTIONS_SHA_SEMVER);
         assert_eq!(changes.len(), 2);
     }
 
     #[test]
     fn test_parse_example_to_changes_plotinator() {
-        let changes = parse_changes(EXAMPLE_DEPENDABOT_BODY_PLOTINATOR);
+        let changes = parse_changes(DEPENDABOT_BODY_7_CRATES_SEMVER);
         assert_eq!(changes.len(), 8);
 
         let changes_md = format_changes(changes);
