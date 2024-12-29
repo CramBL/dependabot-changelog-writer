@@ -127,13 +127,23 @@ const UPDATE_KEYWORDS: [(& str, usize); 2] = [
 fn parse_changes(body: &str) -> Vec<DependabotChange> {
     let mut changes = Vec::new();
 
+    let mut skip_parsing = false;
     for line in body.lines() {
-        for &(keyword, keyword_len) in &UPDATE_KEYWORDS {
-            if let Some(start) = line.find(keyword) {
-                let remaining = &line[start + keyword_len + 1..]; // +1 for whitespace
-                if let Some(dependabot_change) = DependabotChange::from_str(remaining) {
-                    changes.push(dependabot_change);
-                    break;
+        // Skip content in a <details> section
+        if skip_parsing {
+            if line.starts_with("</details") {
+                skip_parsing = false;
+            }
+        } else if line.starts_with("<details") {
+            skip_parsing = true;
+        } else {
+            for &(keyword, keyword_len) in &UPDATE_KEYWORDS {
+                if let Some(start) = line.find(keyword) {
+                    let remaining = &line[start + keyword_len + 1..]; // +1 for whitespace
+                    if let Some(dependabot_change) = DependabotChange::from_str(remaining) {
+                        changes.push(dependabot_change);
+                        break;
+                    }
                 }
             }
         }
@@ -205,6 +215,20 @@ mod tests {
         let changes = parse_changes(DEPENDABOT_BODY_1_DOCKER_NOVEL_VERSION);
         assert_eq!(changes.len(), 1);
         assert_eq!(changes[0], DependabotChange::new("ubi9/ubi", "9.4-1214.1726694543", "9.4-1214.1729773476"));
+    }
+
+    #[test]
+    fn test_parse_body_skips_details_section() {
+        let pr_body = r"Bumps foo from 0.1.0a to 0.1.1b
+<details>
+Bumps bar from 0.1.0 to 0.2.0
+</details>
+Updates baz from 2024.1.2 to 2025.1.2-rc1
+";
+        let changes = parse_body(&pr_body);
+        assert_eq!(changes.len(), 2);
+        assert_eq!(changes[0], DependabotChange::new("foo", "0.1.0a", "0.1.1b"));
+        assert_eq!(changes[1], DependabotChange::new("baz", "2024.1.2", "2025.1.2-rc1"));
     }
 
 }
