@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_find_old_version_docker_sha1() {
-        let test_str = "- Bump `docker/login-action` from 3d58c274f17dffee475a5520cbe67f0a882c4dbb to 7ca345011ac4304463197fac0e56eab1bc7e6af0 ([#39](https://github.com/luftkode/settings-manager/pull/39))";
+        let test_str = "- Bump `docker/login-action` from 3d58c274f17dffee475a5520cbe67f0a882c4dbb to 7ca345011ac4304463197fac0e56eab1bc7e6af0 ([#39](https://github.com/bumps_org/updates-versioner/pull/39))";
         let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "3d58c274f17dffee475a5520cbe67f0a882c4dbb");
     }
@@ -251,7 +251,7 @@ mod tests {
     #[test]
     fn test_find_old_version_actions_toolkit_semver() {
         let test_str =
-            " 0.40.0 to 0.42.0</li> ([#39](https://github.com/luftkode/settings-manager/pull/39))";
+            " 0.40.0 to 0.42.0</li> ([#39](https://github.com/bumps_org/updates-versioner/pull/39))";
         let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "0.40.0");
     }

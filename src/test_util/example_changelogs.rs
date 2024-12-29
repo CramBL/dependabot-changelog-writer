@@ -107,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Only set font styles when it changes instead of at every frame (leftover tech-debt from starting to learn egui)
-- Make the loaded files window scrollable - resolves https://github.com/luftkode/plotinator3000/issues/118
+- Make the loaded files window scrollable - resolves https://github.com/bumps_org/from-1.2.3-project-to-foo/issues/118
 
 ## [1.3.3]
 
@@ -186,7 +186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
-- Updater was looking for an install receipt which plotinator3000 no longer uses. The updater now proceeds without needing an install receipt.
+- Updater was looking for an install receipt which from-1.2.3-project-to-foo no longer uses. The updater now proceeds without needing an install receipt.
 
 ## [1.0.1]
 
@@ -203,7 +203,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `logviewer-rs` is now renamed to `Plotinator3000`, signifying that it is not really a logviewer and more of a plotting app that will plot any supported format, and do it very fast.
+- `logviewer-rs` is now renamed to `from-1.2.3-project-to-foo`, signifying that it is not really a logviewer and more of a plotting app that will plot any supported format, and do it very fast.
 
 ## [0.28.0]
 
@@ -248,13 +248,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
-- Web version of `plotinator3000` was broken due an integer overflow. When determining down sample level, a cast from 64-bit float to pointer size caused integer overflow on wasm due to wasm having a 32-bit pointer size.
+- Web version of `from-1.2.3-project-to-foo` was broken due an integer overflow. When determining down sample level, a cast from 64-bit float to pointer size caused integer overflow on wasm due to wasm having a 32-bit pointer size.
 
 ## [0.24.0]
 
 ### Added
 
-- Initial support for `HDF` files, starting with bifrost (TX) loop current. The feature is currently guarded behind a feature flag, enabling it is tracked at: https://github.com/luftkode/plotinator3000/issues/84.
+- Initial support for `HDF` files, starting with bifrost (TX) loop current. The feature is currently guarded behind a feature flag, enabling it is tracked at: https://github.com/bumps_org/from-1.2.3-project-to-foo/issues/84.
 
 ### Changed
 
@@ -308,7 +308,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
-- `Mbed status Log v2` mistakenly interpreted as `Mbed status Log v1` when loaded via a path (native `plotinator3000`)
+- `Mbed status Log v2` mistakenly interpreted as `Mbed status Log v1` when loaded via a path (native `from-1.2.3-project-to-foo`)
 
 ## [0.19.0]
 
