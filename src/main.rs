@@ -20,7 +20,7 @@ mod github_env;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn run() -> Result<()> {
-    let config = config::Config::new()?;
+    let config = config::Config::from_env_args()?;
     let event = GithubEvent::load_from_env()?;
 
     if let Some(pr_body) = event.pr_body() {
