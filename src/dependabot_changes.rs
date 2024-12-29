@@ -200,4 +200,11 @@ mod tests {
         assert_eq!(changes[0], DependabotChange::new("[some-submodule](https://github.com/updates-org/some-submodule)", "`b0c35f6`", "`c8bd600`"));
     }
 
+    #[test]
+    fn test_parse_body_1_docker_novel_version() {
+        let changes = parse_changes(DEPENDABOT_BODY_1_DOCKER_NOVEL_VERSION);
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0], DependabotChange::new("ubi9/ubi", "9.4-1214.1726694543", "9.4-1214.1729773476"));
+    }
+
 }
