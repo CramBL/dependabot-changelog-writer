@@ -36,15 +36,29 @@ pub fn add_changes_to_changelog_contents(
         // that way the next content we might have to update doesn't change position
         // and we don't have to keep track of an intermediate offset
         for line in existing_deps.iter().rev() {
-            changelog_content.replace_range(line.range_offset(existing_h3_start), "");
-            string_offset += line.range().len();
+            let range_to_remove = line.range_offset(existing_h3_start);
+            debug_assert_eq!(
+                changelog_content[range_to_remove.clone()]
+                    .matches('\n')
+                    .count(),
+                1,
+                "Removed previous dependency entry should contain exactly one newline"
+            );
+            changelog_content.replace_range(range_to_remove.clone(), "");
+            string_offset += range_to_remove.len();
         }
-
         let changes_md = format_changes(changes);
-        changelog_content.insert_str(
-            h2_insert_pos + existing_h3_insert_pos - string_offset,
-            &changes_md,
-        );
+        let mut changes_insert_pos = h2_insert_pos + existing_h3_insert_pos - string_offset;
+        let three_prev_chars = &changelog_content[changes_insert_pos - 3..changes_insert_pos];
+        if three_prev_chars == "\n\n\n" {
+            // Special handling for the case where the h3 section header already contains
+            // dependency update entries and all those dependencies are also being bumped
+            // by the newly created dependabot PR. This would result in an extra newline and the
+            // start of the section, and one missing at the end. We fix it by shifting the insertion
+            // one character back.
+            changes_insert_pos -= 1;
+        }
+        changelog_content.insert_str(changes_insert_pos, &changes_md);
     } else {
         let changes_md = format_changes(changes);
         let new_h3_insert_pos =
@@ -84,7 +98,9 @@ mod tests {
     #[test]
     fn test_add_changes_to_changelog_content_small_changelog() {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
-
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
         let expect_final_changelog_contents = r#"# Changelog
 
 ## [Unreleased]
@@ -112,19 +128,33 @@ mod tests {
 "#;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES.to_vec(),
+            changes.clone(),
             &mut changelog_content,
-            &VersionHeader::new("Unreleased".into()),
-            "Dependencies",
+            &version_header,
+            section_header,
         );
-
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
     }
 
     #[test]
     fn test_add_changes_to_changelog_content_small_changelog_with_dependencies_section() {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_WITH_DEPENDENCIES_CONTENTS.to_owned();
-
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
         let expect_final_changelog_contents = r#"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -158,19 +188,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "#;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES.to_vec(),
+            changes.clone(),
             &mut changelog_content,
-            &VersionHeader::new("Unreleased".into()),
-            "Dependencies",
+            &version_header,
+            section_header,
         );
 
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
     }
 
     #[test]
     fn test_add_changes_to_changelog_contents_empty_changelog() {
         let mut changelog_content = EXAMPLE_EMPTY_CHANGELOG_CONTENTS.to_owned();
-
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
         let expect_final_changelog_contents = r#"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -194,13 +238,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "#;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES.to_vec(),
+            changes.clone(),
             &mut changelog_content,
-            &VersionHeader::new("Unreleased".to_owned()),
-            "Dependencies",
+            &version_header,
+            section_header,
         );
-
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
     }
 
     /// The section already contains the env_logger dependency so we expect that line to be
@@ -209,7 +264,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     #[test]
     fn test_insert_changes_when_changes_section_exists() {
         let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
-
+        let changes = EXAMPLE_CHANGES_SMALL.to_vec();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
         let expect_final_changelog_contents = r##"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -236,19 +293,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "##;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES_SMALL.to_vec(),
+            changes.clone(),
             &mut changelog_content,
-            &VersionHeader::new("Unreleased".to_owned()),
-            "Dependencies",
+            &version_header,
+            section_header,
         );
-
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
+    }
+
+    /// Check that we correctly update all entries when all the new version updates match earlier entries in the same section header
+    #[test]
+    fn test_insert_changes_when_changes_section_exists_replaces_all_entries() {
+        let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
+        let changes = vec![
+            DependabotChange::new("`chrono`", "0.4.39", "0.4.41"),
+            DependabotChange::new("`env_logger`", "0.11.5", "0.12.1"),
+            DependabotChange::new("`semver`", "1.0.24", "1.0.25"),
+        ];
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r##"# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Some feature
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.41
+- `env_logger`: 0.11.5 → 0.12.1
+- `semver`: 1.0.23 → 1.0.25
+
+### Fix
+
+- Some issue
+"##;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
     }
 
     #[test]
     fn test_insert_changes_in_previous_version_no_trailing_newline() {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS_NO_NEWLINE.to_owned();
-
+        let changes = EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec();
+        let version_header = VersionHeader::new("0.1.0".into());
+        let section_header = "Dependencies";
         let expect_final_changelog_contents = r##"# Changelog
 
 ## [Unreleased]
@@ -267,12 +393,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 "##;
 
         add_changes_to_changelog_contents(
-            EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec(),
+            changes.clone(),
             &mut changelog_content,
-            &VersionHeader::new("0.1.0".to_owned()),
-            "Dependencies",
+            &version_header,
+            section_header,
         );
-
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
     }
 }

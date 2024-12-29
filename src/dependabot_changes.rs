@@ -102,11 +102,6 @@ pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
 }
 
 pub fn format_changes(changes: Vec<DependabotChange>) -> String {
-    if changes.is_empty() {
-        return String::new();
-    }
-
-    // Start with an empty string to accumulate the formatted result
     let mut markdown = String::new();
 
     // Iterate over each change and format it into the markdown string
@@ -118,7 +113,6 @@ pub fn format_changes(changes: Vec<DependabotChange>) -> String {
     debug_assert!(!markdown.starts_with("\n\n"));
     debug_assert!(!markdown.ends_with("\n\n"));
 
-    // Return the final markdown string
     markdown
 }
 
