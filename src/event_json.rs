@@ -73,3 +73,20 @@ impl GithubEvent {
         self.pr_body.as_deref()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_util::*;
+    use testresult::TestResult;
+
+    #[test]
+    fn test_github_event_from_minimal_pr_opened_example() -> TestResult {
+        let gh_event = GithubEvent::new(EXAMPLE_PR_OPENED_EVENT_JSON.to_owned())?;
+
+        debug_assert_eq!(gh_event.pr_body().unwrap().len(), 10814);
+        debug_assert_eq!(gh_event.branch_name(), "bump-changelog-writer");
+
+        Ok(())
+    }
+}
