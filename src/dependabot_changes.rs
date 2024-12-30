@@ -154,7 +154,7 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_util::example_dependabot_pr_bodies::*;
+    use crate::test_util::*;
     use pretty_assertions::assert_str_eq;
 
     #[test]
