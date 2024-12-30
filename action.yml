@@ -61,17 +61,23 @@ runs:
       if: runner.os == 'Windows'
       run: echo "binary_name=${{ env.binary_name }}.exe" >> $GITHUB_ENV
 
+    # Extracts the version from the action_path to use for downloading the matching release
+    # in the next step. If the final component is this repo, it means we are running the
+    # integration test, so we set the version to empty string which makes the next step
+    # download the latest release. We also download latest if the action is set to "@latest"
     - name: Get Action Version
       id: get_action_version
-      shell: pwsh
+      shell: bash
       run: |
-        $finalComponent = Split-Path -Leaf ${{ github.action_path }}
-        if ($finalComponent -eq "${{ env.action_repo }}") {
-          $version = ""
-        } else {
-          $version = $finalComponent
-        }
-        Write-Output "version=$version" >> $Env:GITHUB_OUTPUT
+        action_path="${{ github.action_path }}"
+        clean_action_path=${action_path%/./}
+        action_path_final_component=${clean_action_path##*/}
+        if [ "${action_path_final_component}" == "${{ env.action_repo }}" ] || [ "${action_path_final_component}" == "latest" ]; then
+            version=""
+        else
+            version="${action_path_final_component}"
+        fi
+        echo "version=$version" >> $GITHUB_OUTPUT
 
     - name: Download Action
       shell: bash
