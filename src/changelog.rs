@@ -2,7 +2,7 @@ mod parse;
 
 use crate::{
     config::VersionHeader,
-    dependabot_changes::{format_changes, DependabotChange},
+    dependabot_changes::{dependabot_change::DependabotChange, format_changes},
 };
 
 pub fn add_changes_to_changelog_contents(

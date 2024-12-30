@@ -1,4 +1,4 @@
-use crate::dependabot_changes::DependabotChange;
+use crate::dependabot_changes::dependabot_change::DependabotChange;
 
 pub const EXAMPLE_CHANGES: &[DependabotChange<'_>] = &[
     DependabotChange::new("`serde`", "1.0.215", "1.0.216"),
