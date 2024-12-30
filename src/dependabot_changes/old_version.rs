@@ -1,11 +1,10 @@
-
 /// Represents the Old/former version of a dependency that is updates.
 #[derive(Debug, Clone, PartialEq)]
 pub enum OldVersion<'s> {
     /// The Old version described by the dependabot Pull Request body
     FromDependabot(&'s str),
     /// If the changelog already contains an entry for the dependency
-    /// in the h3 section we're gonna write an entry to, this will be the 
+    /// in the h3 section we're gonna write an entry to, this will be the
     /// old version from the existing changelog entry
     FromChangelog(String),
 }

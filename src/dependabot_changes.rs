@@ -1,8 +1,7 @@
 use dependabot_change::DependabotChange;
 
-pub mod old_version;
 pub mod dependabot_change;
-
+pub mod old_version;
 
 pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
     let changes = parse_changes(body);
@@ -61,8 +60,6 @@ pub fn format_changes(changes: Vec<DependabotChange>) -> String {
 
     markdown
 }
-
-
 
 #[cfg(test)]
 mod tests {
