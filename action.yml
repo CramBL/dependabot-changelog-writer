@@ -72,7 +72,7 @@ runs:
         action_path="${{ github.action_path }}"
         clean_action_path=${action_path%/./}
         action_path_final_component=${clean_action_path##*/}
-        if [ "${action_path_final_component}" == "${{ env.action_repo }}" ] || [ "${action_path_final_component}" == "latest" ]; then
+        if [ "${action_path_final_component}" == "${{ env.action_repo }}" ] || [ "${action_path_final_component}" == "trunk" ]; then
             version=""
         else
             version="${action_path_final_component}"
