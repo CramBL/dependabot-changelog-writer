@@ -1,6 +1,6 @@
 use std::ops;
 
-use crate::{config::VersionHeader, dependabot_changes::DependabotChange};
+use crate::{config::VersionHeader, dependabot_changes::dependabot_change::DependabotChange};
 
 /// Attempts to find the "old version" in a line describing a dependency update
 /// will attempt to find semver or SHA1
