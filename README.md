@@ -29,10 +29,10 @@ Then commits and pushes the changes to the current branch.
 
 ### Handles edge cases
 
-- [x] Dependabot bumped a dependency from one **Git SHA** to another 
+- [x] Dependabot bumped a dependency from one **Git SHA** to another
 - [x] A submodule was updated to another **short SHA**
 - [x] The `Dependencies` section already contains an entry like `bump X from A to B` - Handled by replacing that entry with `bump X from A to C`
-- [x] Branch is checked out detached from HEAD (e.g. workflow triggered by opened pull request) - Locates HEAD from remote before committing  
+- [x] Branch is checked out detached from HEAD (e.g. workflow triggered by opened pull request) - Locates HEAD from remote before committing
 
 ## Using this action
 
@@ -55,7 +55,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: crambl/dependabot-changelog-writer@latest
+    - uses: crambl/dependabot-changelog-writer@trunk
 ```
 
 If you have CI checks that are invalidated by in-workflow pushes you can add a PAT to make CI trigger on the push
