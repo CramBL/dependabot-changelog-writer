@@ -70,6 +70,16 @@ jobs:
         # default: './CHANGELOG.md'
         changelog: ''
 
+        # Template string defining how dependency updates are formatted in changelog entries.
+        # Uses [dep], [old], [new] as placeholder tokens for dependency name, old version, 
+        # and new version respectively. Tokens must appear in order: [dep], [old], [new].
+
+        # Examples:
+        # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
+        # - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
+        # default: '[dep]: [old] → [new]'
+        update-entry-pattern: ''
+
         # The commit message for the changelog entry
         # default: 'Updated changelog with updated dependencies'
         commit-message: ''

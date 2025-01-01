@@ -122,7 +122,7 @@ jobs:
           RUST_LOG: DEBUG
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
-        run: cargo run -- "CHANGELOG.md" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3" "false"
+        run: cargo run -- "CHANGELOG.md" "📝 Update [dep] from [old] to [new]" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3" "false"
 
   build:
     strategy:
@@ -180,6 +180,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
         run: ./${{ env.binary_name }} "CHANGELOG.md" \
+                                    "📝 Update [dep] from [old] to🚀 [new]🍄"
                                     "commit msg" \
                                     "github-actions[bot]" \
                                     "github-actions[bot]@users.noreply.github.com" \

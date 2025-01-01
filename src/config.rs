@@ -5,6 +5,8 @@ use std::{env, io};
 
 use git2::Signature;
 
+use crate::dependabot_changes::entry_pattern::EntryPattern;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn next_arg_trimmed(args: &mut impl Iterator<Item = String>) -> Option<String> {
@@ -28,12 +30,18 @@ impl VersionHeader {
 }
 
 #[derive(Debug)]
+pub struct CommitSettings {
+    pub message: String,
+    pub author: String,
+    pub author_email: String,
+}
+
+#[derive(Debug)]
 pub struct Config {
     dry_run: bool,
     changelog_path: PathBuf,
-    commit_message: String,
-    committer_name: String,
-    committer_email: String,
+    entry_pattern: EntryPattern,
+    commit_settings: CommitSettings,
     version_header: VersionHeader,
     section_header: String,
 }
@@ -44,6 +52,10 @@ impl Config {
 
         let changelog_path = next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
         log::debug!("changelog_path={changelog_path}");
+
+        let changelog_entry_pattern =
+            next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
+        log::debug!("changelog_entry_pattern={changelog_entry_pattern}");
 
         let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit message")?;
         log::debug!("commit_message={commit_message}");
@@ -78,12 +90,17 @@ impl Config {
             return Err("The specified changelog could not be found".into());
         }
 
+        let entry_pattern = EntryPattern::new(&changelog_entry_pattern)?;
+
         Ok(Self::new(
             dry_run,
             changelog_path,
-            commit_message,
-            committer_name,
-            committer_email,
+            entry_pattern,
+            CommitSettings {
+                message: commit_message,
+                author: committer_name,
+                author_email: committer_email,
+            },
             VersionHeader::new(version_header),
             section_header,
         ))
@@ -92,29 +109,30 @@ impl Config {
     pub const fn new(
         dry_run: bool,
         changelog_path: PathBuf,
-        commit_message: String,
-        committer_name: String,
-        committer_email: String,
+        entry_pattern: EntryPattern,
+        commit_settings: CommitSettings,
         version_header: VersionHeader,
         section_header: String,
     ) -> Self {
         Self {
             dry_run,
             changelog_path,
-            commit_message,
-            committer_name,
-            committer_email,
+            entry_pattern,
+            commit_settings,
             version_header,
             section_header,
         }
     }
 
     pub fn commit_signature(&self) -> std::result::Result<Signature, git2::Error> {
-        Signature::now(&self.committer_name, &self.committer_email)
+        Signature::now(
+            &self.commit_settings.author,
+            &self.commit_settings.author_email,
+        )
     }
 
     pub fn commit_message(&self) -> &str {
-        &self.commit_message
+        &self.commit_settings.message
     }
 
     pub fn version_header(&self) -> &VersionHeader {
@@ -139,5 +157,9 @@ impl Config {
 
     pub fn dry_run(&self) -> bool {
         self.dry_run
+    }
+
+    pub fn entry_pattern(&self) -> &EntryPattern {
+        &self.entry_pattern
     }
 }

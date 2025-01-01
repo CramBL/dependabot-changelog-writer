@@ -30,6 +30,7 @@ fn run() -> Result<()> {
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_contents,
+            config.entry_pattern(),
             config.version_header(),
             config.section_header(),
         );

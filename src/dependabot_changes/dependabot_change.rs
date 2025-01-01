@@ -8,10 +8,6 @@ pub struct DependabotChange<'s> {
 }
 
 impl<'s> DependabotChange<'s> {
-    const PREFIX: &'static str = "- ";
-    const NAME_OLD_VER_SEPARATOR: &'static str = ": ";
-    const OLD_VER_NEW_VER_SEPARATOR: &'static str = " → ";
-
     pub const fn new(name: &'s str, old_version: &'s str, new_version: &'s str) -> Self {
         Self {
             name,
@@ -20,14 +16,12 @@ impl<'s> DependabotChange<'s> {
         }
     }
 
-    pub fn formatted_len(&self) -> usize {
-        Self::PREFIX.len()
-            + self.name.len()
-            + Self::NAME_OLD_VER_SEPARATOR.len()
-            + self.old_version.len()
-            + Self::OLD_VER_NEW_VER_SEPARATOR.len()
-            + self.new_version.len()
-            + "\n".len()
+    /// The combined length of the name + old_version + new_version strings
+    ///
+    /// Add the length of the template string without tokens to get the
+    /// total formatted length.
+    pub fn total_len(&self) -> usize {
+        self.name.len() + self.old_version.len() + self.new_version.len()
     }
 
     /// Attempts to parse a DependabotChange from a string.
@@ -77,21 +71,6 @@ impl<'s> DependabotChange<'s> {
             OldVersion::FromDependabot(s) => s,
             OldVersion::FromChangelog(ref s) => s,
         }
-    }
-}
-
-impl std::fmt::Display for DependabotChange<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(
-            f,
-            "{pre}{name}{sep1}{old_ver}{sep2}{new_ver}",
-            pre = Self::PREFIX,
-            sep1 = Self::NAME_OLD_VER_SEPARATOR,
-            sep2 = Self::OLD_VER_NEW_VER_SEPARATOR,
-            name = self.name,
-            old_ver = self.old_version(),
-            new_ver = self.new_version
-        )
     }
 }
 
