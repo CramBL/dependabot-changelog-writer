@@ -241,8 +241,11 @@ jobs:
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
           fi
 
-      - name: Run release workflow
+      - name: Trigger Release Workflow
         if: env.TAG_EXISTS == 'false'
-        uses: ./.github/workflows/release.yml
-        with:
-          version: ${{ env.VERSION }}
+        run: |
+            gh workflow run release.yml \
+            -f version=${{ env.VERSION }} \
+            --ref ${{ github.ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_WITH_REPO_SCOPE }}
