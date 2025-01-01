@@ -1,6 +1,8 @@
 use dependabot_change::DependabotChange;
+use entry_pattern::EntryPattern;
 
 pub mod dependabot_change;
+pub mod entry_pattern;
 pub mod old_version;
 
 pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
@@ -46,13 +48,14 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
     changes
 }
 
-pub fn format_changes(changes: Vec<DependabotChange>) -> String {
+pub fn format_changes(changes: Vec<DependabotChange>, entry_pattern: &EntryPattern) -> String {
     let mut markdown = String::new();
 
     // Iterate over each change and format it into the markdown string
     for change in changes {
         // For each change, add a list item in markdown format
-        markdown.push_str(&change.to_string());
+        let entry = entry_pattern.format(change.name, change.old_version(), change.new_version);
+        markdown.push_str(&entry);
     }
 
     debug_assert!(!markdown.starts_with("\n\n"));
@@ -70,6 +73,7 @@ mod tests {
     #[test]
     fn test_parse_body() {
         let changes = parse_body(DEPENDABOT_BODY_2_ACTIONS_SHA_SEMVER);
+        let entry_pattern = &EntryPattern::default();
         assert_eq!(changes.len(), 2);
         assert_eq!(
             changes[0],
@@ -83,7 +87,7 @@ mod tests {
                 "7ca345011ac4304463197fac0e56eab1bc7e6af0"
             )
         );
-        let changes_md = format_changes(changes);
+        let changes_md = format_changes(changes, entry_pattern);
         let expect_md = "\
         - `crate-ci/typos`: 1.27.0 → 1.28.4\n\
         - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0\n";
@@ -99,6 +103,7 @@ mod tests {
     #[test]
     fn test_parse_example_to_changes_7_crates_semver() {
         let changes = parse_changes(DEPENDABOT_BODY_7_CRATES_SEMVER);
+        let entry_pattern = &EntryPattern::default();
         assert_eq!(changes.len(), 8);
         assert_eq!(
             changes[0],
@@ -130,7 +135,7 @@ mod tests {
             DependabotChange::new("`thiserror`", "2.0.4", "2.0.9")
         );
 
-        let changes_md = format_changes(changes);
+        let changes_md = format_changes(changes, entry_pattern);
         let expect_md = "\
         - `serde`: 1.0.215 → 1.0.216\n\
         - `chrono`: 0.4.38 → 0.4.39\n\
@@ -140,6 +145,43 @@ mod tests {
         - `wasm-bindgen-futures`: 0.4.47 → 0.4.49\n\
         - `web-sys`: 0.3.74 → 0.3.76\n\
         - `thiserror`: 2.0.4 → 2.0.9\n";
+        assert_str_eq!(changes_md, expect_md);
+    }
+
+    #[test]
+    fn test_parse_example_to_changes_7_crates_semver_custom_pattern() {
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let entry_pattern = &EntryPattern::new("Bump [dep] from [old] to [new]").unwrap();
+
+        let changes_md = format_changes(changes, entry_pattern);
+        let expect_md = "\
+        - Bump `serde` from 1.0.215 to 1.0.216\n\
+        - Bump `chrono` from 0.4.38 to 0.4.39\n\
+        - Bump `semver` from 1.0.23 to 1.0.24\n\
+        - Bump `env_logger` from 0.11.5 to 0.11.6\n\
+        - Bump `zip` from 2.2.1 to 2.2.2\n\
+        - Bump `wasm-bindgen-futures` from 0.4.47 to 0.4.49\n\
+        - Bump `web-sys` from 0.3.74 to 0.3.76\n\
+        - Bump `thiserror` from 2.0.4 to 2.0.9\n";
+        assert_str_eq!(changes_md, expect_md);
+    }
+
+    #[test]
+    fn test_parse_example_to_changes_7_crates_semver_custom_pattern_emojies() {
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let entry_pattern =
+            &EntryPattern::new("📝 Update [dep] from 🩺[old]🩺 🚀 🍄[new]🍄").unwrap();
+
+        let changes_md = format_changes(changes, entry_pattern);
+        let expect_md = "\
+        - 📝 Update `serde` from 🩺1.0.215🩺 🚀 🍄1.0.216🍄\n\
+        - 📝 Update `chrono` from 🩺0.4.38🩺 🚀 🍄0.4.39🍄\n\
+        - 📝 Update `semver` from 🩺1.0.23🩺 🚀 🍄1.0.24🍄\n\
+        - 📝 Update `env_logger` from 🩺0.11.5🩺 🚀 🍄0.11.6🍄\n\
+        - 📝 Update `zip` from 🩺2.2.1🩺 🚀 🍄2.2.2🍄\n\
+        - 📝 Update `wasm-bindgen-futures` from 🩺0.4.47🩺 🚀 🍄0.4.49🍄\n\
+        - 📝 Update `web-sys` from 🩺0.3.74🩺 🚀 🍄0.3.76🍄\n\
+        - 📝 Update `thiserror` from 🩺2.0.4🩺 🚀 🍄2.0.9🍄\n";
         assert_str_eq!(changes_md, expect_md);
     }
 

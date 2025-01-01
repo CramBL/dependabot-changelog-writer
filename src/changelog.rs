@@ -2,16 +2,21 @@ mod parse;
 
 use crate::{
     config::VersionHeader,
-    dependabot_changes::{dependabot_change::DependabotChange, format_changes},
+    dependabot_changes::{
+        dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes,
+    },
 };
 
 pub fn add_changes_to_changelog_contents(
     mut changes: Vec<DependabotChange>,
     changelog_content: &mut String,
+    entry_pattern: &EntryPattern,
     version_header: &VersionHeader,
     section_header: &str,
 ) {
-    let changes_formatted_len = changes.iter().fold(0, |sum, c| c.formatted_len() + sum);
+    let changes_formatted_len = changes
+        .iter()
+        .fold(0, |sum, c| c.total_len() + entry_pattern.min_len() + sum);
 
     let mut h3_header = format!("### {section_header}\n");
     // Reserve for the new changelog entry to avoid the worst case of allocating
@@ -47,7 +52,7 @@ pub fn add_changes_to_changelog_contents(
             changelog_content.replace_range(range_to_remove.clone(), "");
             string_offset += range_to_remove.len();
         }
-        let changes_md = format_changes(changes);
+        let changes_md = format_changes(changes, entry_pattern);
         let mut changes_insert_pos = h2_insert_pos + existing_h3_insert_pos - string_offset;
         let three_prev_chars = &changelog_content[changes_insert_pos - 3..changes_insert_pos];
         if three_prev_chars == "\n\n\n" {
@@ -60,7 +65,7 @@ pub fn add_changes_to_changelog_contents(
         }
         changelog_content.insert_str(changes_insert_pos, &changes_md);
     } else {
-        let changes_md = format_changes(changes);
+        let changes_md = format_changes(changes, entry_pattern);
         let new_h3_insert_pos =
             parse::find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
         let insert_pos = h2_insert_pos + new_h3_insert_pos;
@@ -99,6 +104,7 @@ mod tests {
     fn test_add_changes_to_changelog_content_small_changelog() {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
         let changes = EXAMPLE_CHANGES.to_vec();
+        let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
         let expect_final_changelog_contents = r#"# Changelog
@@ -130,6 +136,7 @@ mod tests {
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -139,6 +146,7 @@ mod tests {
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -152,6 +160,7 @@ mod tests {
     #[test]
     fn test_add_changes_to_changelog_content_small_changelog_with_dependencies_section() {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_WITH_DEPENDENCIES_CONTENTS.to_owned();
+        let entry_pattern = EntryPattern::default();
         let changes = EXAMPLE_CHANGES.to_vec();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
@@ -190,6 +199,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -199,6 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -212,6 +223,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     #[test]
     fn test_add_changes_to_changelog_contents_empty_changelog() {
         let mut changelog_content = EXAMPLE_EMPTY_CHANGELOG_CONTENTS.to_owned();
+        let entry_pattern = EntryPattern::default();
         let changes = EXAMPLE_CHANGES.to_vec();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
@@ -240,6 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -248,6 +261,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -265,6 +279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     fn test_insert_changes_when_changes_section_exists() {
         let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
         let changes = EXAMPLE_CHANGES_SMALL.to_vec();
+        let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
         let expect_final_changelog_contents = r##"# Changelog
@@ -295,6 +310,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -303,6 +319,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -322,6 +339,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DependabotChange::new("`env_logger`", "0.11.5", "0.12.1"),
             DependabotChange::new("`semver`", "1.0.24", "1.0.25"),
         ];
+        let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
         let expect_final_changelog_contents = r##"# Changelog
@@ -351,6 +369,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -359,6 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -372,6 +392,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     #[test]
     fn test_insert_changes_in_previous_version_no_trailing_newline() {
         let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS_NO_NEWLINE.to_owned();
+        let entry_pattern = EntryPattern::default();
         let changes = EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec();
         let version_header = VersionHeader::new("0.1.0".into());
         let section_header = "Dependencies";
@@ -395,6 +416,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );
@@ -403,6 +425,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            &entry_pattern,
             &version_header,
             section_header,
         );

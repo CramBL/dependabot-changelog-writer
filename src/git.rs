@@ -127,7 +127,8 @@ fn push_to_remote(
 
 #[cfg(test)]
 mod tests {
-    use crate::config::{self, VersionHeader};
+    use crate::config::{self, CommitSettings, VersionHeader};
+    use crate::dependabot_changes::entry_pattern::EntryPattern;
 
     use super::*;
     use git2::Repository;
@@ -141,9 +142,12 @@ mod tests {
         config::Config::new(
             false,
             PathBuf::from("CHANGELOG.md"),
-            "Test commit message".into(),
-            "Test User".into(),
-            "test@example.com".into(),
+            EntryPattern::default(),
+            CommitSettings {
+                message: "Test commit message".into(),
+                author: "Test User".into(),
+                author_email: "test@example.com".into(),
+            },
             VersionHeader::Unreleased,
             "Dependencies".into(),
         )
