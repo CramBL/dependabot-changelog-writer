@@ -7,6 +7,8 @@ pub struct GithubEvent {
     branch_ref: String,
     branch_name: String,
     pr_body: Option<String>,
+    pr_link: String,
+    pr_number: u64,
 }
 
 impl GithubEvent {
@@ -36,6 +38,10 @@ impl GithubEvent {
         let event: serde_json::Value =
             serde_json::from_str(&event_json).map_err(|e| format!("Malformed event JSON: {e}"))?;
 
+        let pr_number: u64 = event["number"]
+            .as_u64()
+            .expect("Failed to get pull request number");
+
         let branch_ref = if let Some(branch_ref) = event["ref"].as_str() {
             branch_ref.to_owned()
         } else {
@@ -54,10 +60,17 @@ impl GithubEvent {
             .as_str()
             .map(|pr_body| pr_body.to_owned());
 
+        let pr_link = event["pull_request"]["html_url"]
+            .as_str()
+            .expect("Failed to retrieve pull request link")
+            .to_owned();
+
         Ok(Self {
             branch_ref,
             branch_name,
             pr_body,
+            pr_number,
+            pr_link,
         })
     }
 
@@ -72,12 +85,29 @@ impl GithubEvent {
     pub fn pr_body(&self) -> Option<&str> {
         self.pr_body.as_deref()
     }
+
+    pub fn pull_request_number(&self) -> u64 {
+        self.pr_number
+    }
+
+    pub fn pull_request_link(&self) -> &str {
+        &self.pr_link
+    }
+
+    pub fn markdown_pull_request_link(&self) -> String {
+        format!(
+            "[#{pr_number}]({pr_link})",
+            pr_number = self.pr_number,
+            pr_link = self.pr_link
+        )
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_util::*;
+    use pretty_assertions::assert_str_eq;
     use testresult::TestResult;
 
     #[test]
@@ -85,7 +115,16 @@ mod tests {
         let gh_event = GithubEvent::new(EXAMPLE_PR_OPENED_EVENT_JSON.to_owned())?;
 
         assert_eq!(gh_event.pr_body().unwrap().len(), 10814);
-        pretty_assertions::assert_str_eq!(gh_event.branch_name(), "bump-changelog-writer");
+        assert_str_eq!(gh_event.branch_name(), "bump-changelog-writer");
+        assert_eq!(gh_event.pull_request_number(), 9);
+        assert_str_eq!(
+            gh_event.pull_request_link(),
+            "https://github.com/CramBL/dependabot-changelog-writer/pull/1"
+        );
+        assert_str_eq!(
+            &gh_event.markdown_pull_request_link(),
+            "[#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1)"
+        );
 
         Ok(())
     }

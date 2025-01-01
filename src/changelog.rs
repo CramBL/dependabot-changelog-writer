@@ -10,13 +10,16 @@ use crate::{
 pub fn add_changes_to_changelog_contents(
     mut changes: Vec<DependabotChange>,
     changelog_content: &mut String,
+    markdown_pull_request_link: &str,
     entry_pattern: &EntryPattern,
     version_header: &VersionHeader,
     section_header: &str,
 ) {
-    let changes_formatted_len = changes
-        .iter()
-        .fold(0, |sum, c| c.total_len() + entry_pattern.min_len() + sum);
+    let pr_link_len =
+        markdown_pull_request_link.len() * entry_pattern.pull_request_link_token_occurrences();
+    let changes_formatted_len = changes.iter().fold(0, |sum, c| {
+        c.total_len() + entry_pattern.min_len() + pr_link_len + sum
+    });
 
     let mut h3_header = format!("### {section_header}\n");
     // Reserve for the new changelog entry to avoid the worst case of allocating
@@ -52,7 +55,7 @@ pub fn add_changes_to_changelog_contents(
             changelog_content.replace_range(range_to_remove.clone(), "");
             string_offset += range_to_remove.len();
         }
-        let changes_md = format_changes(changes, entry_pattern);
+        let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
         let mut changes_insert_pos = h2_insert_pos + existing_h3_insert_pos - string_offset;
         let three_prev_chars = &changelog_content[changes_insert_pos - 3..changes_insert_pos];
         if three_prev_chars == "\n\n\n" {
@@ -65,7 +68,7 @@ pub fn add_changes_to_changelog_contents(
         }
         changelog_content.insert_str(changes_insert_pos, &changes_md);
     } else {
-        let changes_md = format_changes(changes, entry_pattern);
+        let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
         let new_h3_insert_pos =
             parse::find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
         let insert_pos = h2_insert_pos + new_h3_insert_pos;
@@ -96,9 +99,8 @@ pub fn add_changes_to_changelog_contents(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_str_eq;
-
     use crate::test_util::*;
+    use pretty_assertions::assert_str_eq;
 
     #[test]
     fn test_add_changes_to_changelog_content_small_changelog() {
@@ -117,14 +119,14 @@ mod tests {
 
 ### Dependencies
 
-- `serde`: 1.0.215 → 1.0.216
-- `chrono`: 0.4.38 → 0.4.39
-- `semver`: 1.0.23 → 1.0.24
-- `env_logger`: 0.11.5 → 0.11.6
-- `zip`: 2.2.1 → 2.2.2
-- `wasm-bindgen-futures`: 0.4.47 → 0.4.49
-- `web-sys`: 0.3.74 → 0.3.76
-- `thiserror`: 2.0.4 → 2.0.9
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+- `semver`: 1.0.23 → 1.0.24 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.5 → 0.11.6 ([#1](https://github.com/user/repo/pull/1))
+- `zip`: 2.2.1 → 2.2.2 ([#1](https://github.com/user/repo/pull/1))
+- `wasm-bindgen-futures`: 0.4.47 → 0.4.49 ([#1](https://github.com/user/repo/pull/1))
+- `web-sys`: 0.3.74 → 0.3.76 ([#1](https://github.com/user/repo/pull/1))
+- `thiserror`: 2.0.4 → 2.0.9 ([#1](https://github.com/user/repo/pull/1))
 
 ## [0.1.0]
 
@@ -136,6 +138,7 @@ mod tests {
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -146,6 +149,7 @@ mod tests {
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -176,14 +180,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 
 - Bump egui from 0.29.0 to 0.30.0
-- `serde`: 1.0.215 → 1.0.216
-- `chrono`: 0.4.38 → 0.4.39
-- `semver`: 1.0.23 → 1.0.24
-- `env_logger`: 0.11.5 → 0.11.6
-- `zip`: 2.2.1 → 2.2.2
-- `wasm-bindgen-futures`: 0.4.47 → 0.4.49
-- `web-sys`: 0.3.74 → 0.3.76
-- `thiserror`: 2.0.4 → 2.0.9
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+- `semver`: 1.0.23 → 1.0.24 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.5 → 0.11.6 ([#1](https://github.com/user/repo/pull/1))
+- `zip`: 2.2.1 → 2.2.2 ([#1](https://github.com/user/repo/pull/1))
+- `wasm-bindgen-futures`: 0.4.47 → 0.4.49 ([#1](https://github.com/user/repo/pull/1))
+- `web-sys`: 0.3.74 → 0.3.76 ([#1](https://github.com/user/repo/pull/1))
+- `thiserror`: 2.0.4 → 2.0.9 ([#1](https://github.com/user/repo/pull/1))
 
 ### Changed
 
@@ -199,6 +203,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -209,6 +214,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -238,20 +244,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- `serde`: 1.0.215 → 1.0.216
-- `chrono`: 0.4.38 → 0.4.39
-- `semver`: 1.0.23 → 1.0.24
-- `env_logger`: 0.11.5 → 0.11.6
-- `zip`: 2.2.1 → 2.2.2
-- `wasm-bindgen-futures`: 0.4.47 → 0.4.49
-- `web-sys`: 0.3.74 → 0.3.76
-- `thiserror`: 2.0.4 → 2.0.9
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+- `semver`: 1.0.23 → 1.0.24 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.5 → 0.11.6 ([#1](https://github.com/user/repo/pull/1))
+- `zip`: 2.2.1 → 2.2.2 ([#1](https://github.com/user/repo/pull/1))
+- `wasm-bindgen-futures`: 0.4.47 → 0.4.49 ([#1](https://github.com/user/repo/pull/1))
+- `web-sys`: 0.3.74 → 0.3.76 ([#1](https://github.com/user/repo/pull/1))
+- `thiserror`: 2.0.4 → 2.0.9 ([#1](https://github.com/user/repo/pull/1))
 
 "#;
 
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -261,6 +268,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -299,8 +307,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `chrono`: 0.4.38 → 0.4.39
 - `semver`: 1.0.23 → 1.0.24
-- `serde`: 1.0.215 → 1.0.216
-- `env_logger`: 0.11.5 → 0.12.0
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.5 → 0.12.0 ([#1](https://github.com/user/repo/pull/1))
 
 ### Fix
 
@@ -310,6 +318,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -319,6 +328,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -357,9 +367,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- `chrono`: 0.4.38 → 0.4.41
-- `env_logger`: 0.11.5 → 0.12.1
-- `semver`: 1.0.23 → 1.0.25
+- `chrono`: 0.4.38 → 0.4.41 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.5 → 0.12.1 ([#1](https://github.com/user/repo/pull/1))
+- `semver`: 1.0.23 → 1.0.25 ([#1](https://github.com/user/repo/pull/1))
 
 ### Fix
 
@@ -369,6 +379,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -378,6 +389,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -408,14 +420,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- `serde`: 1.0.215 → 1.0.216
-- `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0 ([#1](https://github.com/user/repo/pull/1))
 
 "##;
 
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,
@@ -425,6 +438,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
             &version_header,
             section_header,

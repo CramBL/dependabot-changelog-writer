@@ -48,13 +48,22 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
     changes
 }
 
-pub fn format_changes(changes: Vec<DependabotChange>, entry_pattern: &EntryPattern) -> String {
+pub fn format_changes(
+    changes: Vec<DependabotChange>,
+    entry_pattern: &EntryPattern,
+    markdown_pull_request_link: &str,
+) -> String {
     let mut markdown = String::new();
 
     // Iterate over each change and format it into the markdown string
     for change in changes {
         // For each change, add a list item in markdown format
-        let entry = entry_pattern.format(change.name, change.old_version(), change.new_version);
+        let entry = entry_pattern.format(
+            change.name,
+            change.old_version(),
+            change.new_version,
+            markdown_pull_request_link,
+        );
         markdown.push_str(&entry);
     }
 
@@ -87,10 +96,10 @@ mod tests {
                 "7ca345011ac4304463197fac0e56eab1bc7e6af0"
             )
         );
-        let changes_md = format_changes(changes, entry_pattern);
+        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
-        - `crate-ci/typos`: 1.27.0 → 1.28.4\n\
-        - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0\n";
+        - `crate-ci/typos`: 1.27.0 → 1.28.4 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0 ([#1](https://github.com/user/repo/pull/1))\n";
         assert_str_eq!(changes_md, expect_md);
     }
 
@@ -135,16 +144,16 @@ mod tests {
             DependabotChange::new("`thiserror`", "2.0.4", "2.0.9")
         );
 
-        let changes_md = format_changes(changes, entry_pattern);
+        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
-        - `serde`: 1.0.215 → 1.0.216\n\
-        - `chrono`: 0.4.38 → 0.4.39\n\
-        - `semver`: 1.0.23 → 1.0.24\n\
-        - `env_logger`: 0.11.5 → 0.11.6\n\
-        - `zip`: 2.2.1 → 2.2.2\n\
-        - `wasm-bindgen-futures`: 0.4.47 → 0.4.49\n\
-        - `web-sys`: 0.3.74 → 0.3.76\n\
-        - `thiserror`: 2.0.4 → 2.0.9\n";
+        - `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `semver`: 1.0.23 → 1.0.24 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `env_logger`: 0.11.5 → 0.11.6 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `zip`: 2.2.1 → 2.2.2 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `wasm-bindgen-futures`: 0.4.47 → 0.4.49 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `web-sys`: 0.3.74 → 0.3.76 ([#1](https://github.com/user/repo/pull/1))\n\
+        - `thiserror`: 2.0.4 → 2.0.9 ([#1](https://github.com/user/repo/pull/1))\n";
         assert_str_eq!(changes_md, expect_md);
     }
 
@@ -153,7 +162,7 @@ mod tests {
         let changes = EXAMPLE_CHANGES.to_vec();
         let entry_pattern = &EntryPattern::new("Bump [dep] from [old] to [new]").unwrap();
 
-        let changes_md = format_changes(changes, entry_pattern);
+        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
         - Bump `serde` from 1.0.215 to 1.0.216\n\
         - Bump `chrono` from 0.4.38 to 0.4.39\n\
@@ -172,7 +181,7 @@ mod tests {
         let entry_pattern =
             &EntryPattern::new("📝 Update [dep] from 🩺[old]🩺 🚀 🍄[new]🍄").unwrap();
 
-        let changes_md = format_changes(changes, entry_pattern);
+        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
         - 📝 Update `serde` from 🩺1.0.215🩺 🚀 🍄1.0.216🍄\n\
         - 📝 Update `chrono` from 🩺0.4.38🩺 🚀 🍄0.4.39🍄\n\

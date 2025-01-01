@@ -71,13 +71,18 @@ jobs:
         changelog: ''
 
         # Template string defining how dependency updates are formatted in changelog entries.
-        # Uses [dep], [old], [new] as placeholder tokens for dependency name, old version, 
-        # and new version respectively. Tokens must appear in order: [dep], [old], [new].
-
+        # Uses [dep], [old], [new], [pr-link] as placeholder tokens for dependency name, old version,
+        # new version, and pull request link respectively.
+        #
+        # Tokens must appear in order: [dep], [old], [new].
+        #
+        # The [pr-link] token is optional and may be specified at any position.
+        #
         # Examples:
         # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
         # - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
-        # default: '[dep]: [old] → [new]'
+        # - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
+        # default: '[dep]: [old] → [new] ([pr-link])'
         update-entry-pattern: ''
 
         # The commit message for the changelog entry
