@@ -1,4 +1,5 @@
 [![CI](https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg)](https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI)](https://codecov.io/github/CramBL/dependabot-changelog-writer)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/CramBL/dependabot-changelog-writer/total)
 
 # dependabot-changelog-writer
