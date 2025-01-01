@@ -222,7 +222,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_WITH_REPO_SCOPE }}
+          token: ${{ secrets.PAT_REPO }}
 
       - name: Get version from Cargo.toml
         id: get_version
