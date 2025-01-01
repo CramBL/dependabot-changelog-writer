@@ -103,7 +103,7 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.update-entry-pattern }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.changelog-entry-pattern }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}
