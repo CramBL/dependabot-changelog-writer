@@ -136,3 +136,16 @@ Then commits and pushes the changes to the current branch.
 - [x] A submodule was updated to another **short SHA**
 - [x] The `Dependencies` section already contains an entry like `bump X from A to B` - Handled by replacing that entry with `bump X from A to C`
 - [x] Branch is checked out detached from HEAD (e.g. workflow triggered by opened pull request) - Locates HEAD from remote before committing
+
+## Alternatives
+
+An alternative to this action is to combine a solution to generate changelog entries with a solution to add, commit, & push changes. If you have or know of a solution and it is not listed here, please make an issue so I can add it.
+
+###  Generating dependabot changelog entries:
+
+- [dangoslen/dependabot-changelog-helper](https://github.com/dangoslen/dependabot-changelog-helper)
+
+### Adding, committing, & pushing changes
+
+- [EndBug/add-and-commit](https://github.com/EndBug/add-and-commit/)
+- [stefanzweifel/git-auto-commit-action](https://github.com/stefanzweifel/git-auto-commit-action)
