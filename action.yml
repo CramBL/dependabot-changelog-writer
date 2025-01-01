@@ -48,7 +48,7 @@ inputs:
   push-changes:
     description: 'Whether or not to add, commit, & push the modified changelog. Note: If no changes are made, no commit is made either.'
     required: true
-    default: true
+    default: 'true'
 
   push-token:
     description: 'The GitHub token to use for git push, defaults to workflow token'
