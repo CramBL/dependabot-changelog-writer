@@ -248,4 +248,4 @@ jobs:
             -f version=${{ env.VERSION }} \
             --ref ${{ github.ref }}
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_WITH_REPO_SCOPE }}
+          GH_TOKEN: ${{ secrets.PAT_WITH_REPO_SCOPE }}
