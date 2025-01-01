@@ -55,10 +55,10 @@ impl EntryPattern {
 
         // Check that tokens appear exactly once and in order
         for token in Self::ORDERED_TOKENS.iter() {
-            let occurences = pattern.matches(token).count();
-            if occurences > 1 {
+            let occurrences = pattern.matches(token).count();
+            if occurrences > 1 {
                 return Err(
-                    format!("{occurences} occurrences of {token}, expected exactly 1").into(),
+                    format!("{occurrences} occurrences of {token}, expected exactly 1").into(),
                 );
             }
 
@@ -95,13 +95,6 @@ impl EntryPattern {
         })
     }
 
-    /// Returns the cooked version of the template string where simple tokens
-    /// such as "[dep]" are replaced with much more collision-proof tokens
-    /// like "{{dep}}", and the line prefix and trailing newlines are added.
-    pub fn cooked_pattern(&self) -> &str {
-        &self.cooked_pattern
-    }
-
     /// The length of the template if all tokens are replaced by an empty string.
     pub const fn min_len(&self) -> usize {
         self.min_len
@@ -125,7 +118,7 @@ mod tests {
         let pattern = "Bump [dep] from [old] to [new]";
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         assert_str_eq!(
-            entry_pattern.cooked_pattern(),
+            entry_pattern.cooked_pattern,
             "- Bump {{dep}} from {{old}} to {{new}}\n"
         );
         assert_eq!(entry_pattern.min_len(), "- Bump  from  to \n".len());
@@ -136,7 +129,7 @@ mod tests {
         let pattern = "📝 Update [dep] from [old] 🚀 [new]🍄";
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         assert_str_eq!(
-            entry_pattern.cooked_pattern(),
+            entry_pattern.cooked_pattern,
             "- 📝 Update {{dep}} from {{old}} 🚀 {{new}}🍄\n"
         );
         assert_eq!("📝".len(), 4);
