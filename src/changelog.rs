@@ -15,10 +15,11 @@ pub fn add_changes_to_changelog_contents(
     version_header: &VersionHeader,
     section_header: &str,
 ) {
-    let pr_link_len = markdown_pull_request_link.len() * entry_pattern.pull_request_link_token_occurrences();
-    let changes_formatted_len = changes
-        .iter()
-        .fold(0, |sum, c| c.total_len() + entry_pattern.min_len() + pr_link_len + sum);
+    let pr_link_len =
+        markdown_pull_request_link.len() * entry_pattern.pull_request_link_token_occurrences();
+    let changes_formatted_len = changes.iter().fold(0, |sum, c| {
+        c.total_len() + entry_pattern.min_len() + pr_link_len + sum
+    });
 
     let mut h3_header = format!("### {section_header}\n");
     // Reserve for the new changelog entry to avoid the worst case of allocating

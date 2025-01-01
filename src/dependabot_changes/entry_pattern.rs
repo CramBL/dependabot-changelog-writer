@@ -5,7 +5,7 @@ pub struct EntryPattern {
     cooked_pattern: String,
     // The length of the pattern string minus the tokens
     min_len: usize,
-    pr_link_token_occurrences: usize
+    pr_link_token_occurrences: usize,
 }
 
 impl Default for EntryPattern {
@@ -104,7 +104,7 @@ impl EntryPattern {
         Ok(Self {
             cooked_pattern,
             min_len,
-            pr_link_token_occurrences
+            pr_link_token_occurrences,
         })
     }
 
@@ -113,7 +113,7 @@ impl EntryPattern {
         self.min_len
     }
 
-    /// How many times was the [PULL_REQUEST_LINK_TOKEN](Self::PULL_REQUEST_LINK_TOKEN) found in the pattern 
+    /// How many times was the [PULL_REQUEST_LINK_TOKEN](Self::PULL_REQUEST_LINK_TOKEN) found in the pattern
     pub fn pull_request_link_token_occurrences(&self) -> usize {
         self.pr_link_token_occurrences
     }
