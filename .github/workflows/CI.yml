@@ -180,6 +180,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
         run: ./${{ env.binary_name }} "CHANGELOG.md" \
+                                    "📝 Update [dep] from [old] to🚀 [new]🍄"
                                     "commit msg" \
                                     "github-actions[bot]" \
                                     "github-actions[bot]@users.noreply.github.com" \
