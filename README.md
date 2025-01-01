@@ -3,11 +3,9 @@
 <h1 align=center><code>Dependabot Changelog Writer</code></h1>
 
 <div align=center>
-  <a href=https://github.com/CramBL/dependabot-changelog-writer/actions>
-    <img src=https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg alt="CI status">
-  </a><a href=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI>
-    <img src=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI alt=codecov>
-  </a><a href=https://discord.gg/ezYScXR>
+  <a href=https://github.com/CramBL/dependabot-changelog-writer/actions> <img src=https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg alt="CI status"> </a> <a href=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI>
+  <img src=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI alt=codecov>
+  </a> <a href=https://github.com/CramBL/dependabot-changelog-writer/releases>
     <img src=https://img.shields.io/github/downloads/CramBL/dependabot-changelog-writer/total alt="GitHub Downloads (all assets, all releases)">
   </a>
 
