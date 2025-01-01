@@ -62,7 +62,7 @@ impl GithubEvent {
 
         let pr_link = event["pull_request"]["html_url"]
             .as_str()
-            .expect("Failed to retrive pull request link")
+            .expect("Failed to retrieve pull request link")
             .to_owned();
 
         Ok(Self {
