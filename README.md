@@ -6,9 +6,11 @@
   <a href=https://github.com/CramBL/dependabot-changelog-writer/actions>
     <img src=https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg alt="CI status">
   </a>
+<br>
   <a href=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI>
     <img src=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI alt=codecov>
   </a>
+<br>
   <a href=https://discord.gg/ezYScXR>
     <img src=https://img.shields.io/github/downloads/CramBL/dependabot-changelog-writer/total alt="GitHub Downloads (all assets, all releases)">
   </a>
