@@ -1,6 +1,10 @@
 name: dependabot-changelog-writer
-description: Generate a changelog entry from a dependabot PR
+description: Generate a changelog entry from a dependabot PR, then commit and push the changes
 author: Marc Beck König <mbkj@tutamail.com>
+branding:
+  color: blue
+  icon: align-justify
+  
 inputs:
   changelog:
     description: 'Path of the changelog relative to the project root'
