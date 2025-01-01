@@ -1,14 +1,28 @@
-[![CI](https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg)](https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI)](https://codecov.io/github/CramBL/dependabot-changelog-writer)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/CramBL/dependabot-changelog-writer/total)
+<div align=right>Table of Contents↗️</div>
 
-# dependabot-changelog-writer
+<h1 align=center><code>Dependabot Changelog Writer</code></h1>
 
-**Generate a changelog entry** from a dependabot PR, **commit** & **push** the changes.
+<div align=center>
+  <a href=https://github.com/CramBL/dependabot-changelog-writer/actions>
+    <img src=https://github.com/CramBL/dependabot-changelog-writer/actions/workflows/CI.yml/badge.svg alt="CI status">
+  </a>
+  <a href=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI>
+    <img src=https://codecov.io/github/CramBL/dependabot-changelog-writer/graph/badge.svg?token=YBFSKWY0HI alt=codecov>
+  </a>
+  <a href=https://discord.gg/ezYScXR>
+    <img src=https://img.shields.io/github/downloads/CramBL/dependabot-changelog-writer/total alt="GitHub Downloads (all assets, all releases)">
+  </a>
+
+<br>
+<br>
+
+<b>Generate a changelog entry</b> from a dependabot PR, <b>commit</b> & <b>push</b> the changes.
+
+</div>
+
+<br>
 
 ## Minimal workflow example
-
-## Using this action
 
 If your project has a `CHANGELOG.md` at the project root that always contains an `unreleased` section where you want Dependabot updates to be written under `### Dependencies`:
 
