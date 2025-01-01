@@ -3,48 +3,45 @@ description: Generate a changelog entry from a dependabot PR
 author: Marc Beck König <mbkj@tutamail.com>
 inputs:
   changelog:
-    description: "Location of the changelog relative to the project root"
-    required: false
-    default: "./CHANGELOG.md"
-  commit_message:
-    description: "The commit message for the changelog entry"
-    required: false
-    default: "Updated changelog with updated dependencies"
-  committer_name:
-    description: The name of the custom committer you want to use
-    required: false
-    default: github-actions[bot]
-  committer_email:
-    description: The email of the custom committer you want to use
-    required: false
-    default: github-actions[bot]@users.noreply.github.com
+    description: 'Path of the changelog relative to the project root'
+    required: true
+    default: './CHANGELOG.md'
+  commit-message:
+    description: 'The commit message for the changelog entry'
+    required: true
+    default: 'Updated changelog with updated dependencies'
+  committer-name:
+    description: 'The name of the custom committer you want to use'
+    required: true
+    default: 'github-actions[bot]'
+  committer-email:
+    description: 'The email of the custom committer you want to use'
+    required: true
+    default: 'github-actions[bot]@users.noreply.github.com'
   version:
-    description: "The version/H1 header to find in the CHANGELOG to add dependabot entries to"
+    description: >
+      The version/H2 header to find in the CHANGELOG to add dependabot entries to 
+      matches whether or not the version is in brackets e.g. [0.1.0] and 0.1.0 are
+      both valid. if set to 'unreleased' it will match 'unreleased' case-insensitive.
     required: true
-    default: "unreleased"
-  section_header:
-    description: The section header to add the changelog entry under
-    required: false
-    default: "Dependencies"
-  push_changes:
-    description: "Whether or not to add, commit, & push the modified changelog"
-    required: false
-    default: "true"
-
-  push_token:
-    description: "The GitHub token to use for git push, defaults to workflow token"
+    default: 'unreleased'
+  section-header:
+    description: 'The section header to add the changelog entry under'
     required: true
-    default: ${{ github.token }}
+    default: 'Dependencies'
+  push-changes:
+    description: 'Whether or not to add, commit, & push the modified changelog. Note: If no changes are made, no commit is made either.'
+    required: true
+    default: true
 
-  action_download_token:
-    description: "The GitHub token to use for downloading the action, defaults to workflow token"
+  push-token:
+    description: 'The GitHub token to use for git push, defaults to workflow token'
     required: true
     default: ${{ github.token }}
-
-outputs:
-  error:
-    description: "The description of any error that occurred"
-    value: ${{ steps.run.outputs.error }}
+  action-download-token:
+    description: 'The GitHub token to use for downloading the action, defaults to workflow token'
+    required: true
+    default: ${{ github.token }}
 
 runs:
   using: "composite"
@@ -85,12 +82,12 @@ runs:
         gh release download ${{ steps.get_action_version.outputs.version }} --repo ${{ env.action_org }}/${{ env.action_repo }} --pattern '${{ runner.os }}.tgz'
         tar -xzf ${{ runner.os }}.tgz
       env:
-        GH_TOKEN: ${{ inputs.action_download_token }}
+        GH_TOKEN: ${{ inputs.action-download-token }}
 
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit_message }}" "${{ inputs.committer_name }}" "${{ inputs.committer_email }}" "${{ inputs.version }}" "${{ inputs.section_header }}" "${{ inputs.push_changes }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
       env:
-        GH_TOKEN: ${{ inputs.action_download_token }}
-        PUSH_TOKEN: ${{ inputs.push_token }}
+        GH_TOKEN: ${{ inputs.action-download-token }}
+        PUSH_TOKEN: ${{ inputs.push-token }}

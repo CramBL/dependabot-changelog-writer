@@ -6,7 +6,95 @@
 
 **Generate a changelog entry** from a dependabot PR, **commit** & **push** the changes.
 
-## Purpose
+## Minimal workflow example
+
+## Using this action
+
+If your project has a `CHANGELOG.md` at the project root that always contains an `unreleased` section where you want Dependabot updates to be written under `### Dependencies`:
+
+```yaml
+name: Dependabot Changelog Entry
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [main] # Your default branch
+
+jobs:
+  update-changelog:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed for pushing changes
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: crambl/dependabot-changelog-writer@trunk # Always use the latest RELEASED version of this action
+```
+
+If you have CI checks that are invalidated by in-workflow pushes you can add a PAT to make CI trigger on the push
+
+```yaml
+- uses: crambl/dependabot-changelog-writer@trunk
+  with:
+    push-token: ${{ secrets.PAT_PUSH }} # Just needs 'public_repo' scope if your repo is public otherwise needs 'repo'
+```
+
+## Exhaustive Example usage
+
+```yaml
+jobs:
+  update-changelog:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed for pushing commit
+    steps:
+    - uses: actions/checkout@v4
+    - uses: crambl/dependabot-changelog-writer@trunk # or specific tag
+      with:
+        # Path of the changelog relative to the project root
+        # default: './CHANGELOG.md'
+        changelog: ''
+
+        # The commit message for the changelog entry
+        # default: 'Updated changelog with updated dependencies'
+        commit-message: ''
+
+        # The name of the custom committer you want to use
+        # default: 'github-actions[bot]'
+        committer-name: ''
+
+        # The email of the custom committer you want to use
+        # default: 'github-actions[bot]@users.noreply.github.com'
+        committer-email: ''
+
+        # The version/H2 header to find in the CHANGELOG to add dependabot entries to
+        # matches whether or not the version is in brackets e.g. [0.1.0] and 0.1.0 are
+        # both valid. if set to 'unreleased' it will match 'unreleased' case-insensitive.
+        # default: 'unreleased'
+        version: ''
+
+        # The section/H3 header to add the changelog entry under
+        # default: 'Dependencies'
+        section-header: ''
+
+        # Whether or not to add, commit, & push the modified changelog
+        # Note: If no changes are made, no commit is made either
+        # default: 'true'
+        push-changes: ''
+
+        # The GitHub token to use for git push
+        # default: ${{ github.token }}
+        # Note: Default token won't re-trigger workflows. Use a PAT if workflows should be re-triggered
+        push-token: ''
+
+        # The GitHub token to use for downloading the action
+        # default: ${{ github.token }}
+        action-download-token: ''
+```
+
+## Description
 
 From a dependabot PR:
 
@@ -34,35 +122,3 @@ Then commits and pushes the changes to the current branch.
 - [x] A submodule was updated to another **short SHA**
 - [x] The `Dependencies` section already contains an entry like `bump X from A to B` - Handled by replacing that entry with `bump X from A to C`
 - [x] Branch is checked out detached from HEAD (e.g. workflow triggered by opened pull request) - Locates HEAD from remote before committing
-
-## Using this action
-
-If your project has a `CHANGELOG.md` at the project root that always contains an `unreleased` section where you want Dependabot updates to be written under `### Dependencies`:
-
-```yaml
-name: Dependabot Changelog Entry
-
-on:
-  pull_request:
-    types: [opened, reopened]
-    branches: [main] # Your default branch
-
-jobs:
-  update-changelog:
-    if: github.actor == 'dependabot[bot]'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # needed for pushing changes
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: crambl/dependabot-changelog-writer@trunk
-```
-
-If you have CI checks that are invalidated by in-workflow pushes you can add a PAT to make CI trigger on the push
-
-```yaml
-- uses: crambl/dependabot-changelog-writer@v1.0.0
-  with:
-    push_token: ${{ secrets.PAT_PUSH }} # Just needs 'public_repo' scope if your repo is public otherwise needs 'repo'
-```

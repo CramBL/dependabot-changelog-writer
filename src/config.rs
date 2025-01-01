@@ -1,12 +1,9 @@
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process;
 use std::{env, io};
 
 use git2::Signature;
-
-use crate::github_env;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -72,18 +69,13 @@ impl Config {
             return Err("Too many arguments provided".into());
         }
 
-        let github_output_path = github_env::github_output();
-
         if changelog_path.is_empty() {
-            Self::exit_with_error("No changelog path specified", github_output_path);
+            return Err("No changelog path specified".into());
         }
 
         let changelog_path = PathBuf::from(changelog_path);
         if !changelog_path.is_file() {
-            Self::exit_with_error(
-                "The specified changelog could not be found",
-                github_output_path,
-            );
+            return Err("The specified changelog could not be found".into());
         }
 
         Ok(Self::new(
@@ -115,20 +107,6 @@ impl Config {
             version_header,
             section_header,
         }
-    }
-
-    fn write_github_output(error_msg: &str, github_output_path: &str) -> Result<()> {
-        fs::write(github_output_path, format!("error={error_msg}"))
-            .map_err(|e| format!("Failed to write to GITHUB_OUTPUT: {e}"))?;
-        Ok(())
-    }
-
-    pub fn exit_with_error(error_msg: &str, github_output_path: &str) -> ! {
-        eprintln!("Error: {error_msg}");
-        if let Err(e) = Self::write_github_output(error_msg, github_output_path) {
-            eprintln!("Additional error when writing output: {e}");
-        }
-        process::exit(1);
     }
 
     pub fn commit_signature(&self) -> std::result::Result<Signature, git2::Error> {
