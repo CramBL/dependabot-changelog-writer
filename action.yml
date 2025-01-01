@@ -6,6 +6,17 @@ inputs:
     description: 'Path of the changelog relative to the project root'
     required: true
     default: './CHANGELOG.md'
+  changelog-entry-pattern:
+    description: >
+      Template string defining how dependency updates are formatted in changelog entries.
+      Uses [dep], [old], [new] as placeholder tokens for dependency name, old version, 
+      and new version respectively. Tokens must appear in order: [dep], [old], [new].
+
+      Examples:
+      - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
+      - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
+    required: true
+    default: '[dep]: [old] → [new]'
   commit-message:
     description: 'The commit message for the changelog entry'
     required: true
@@ -87,7 +98,7 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
+      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.update-entry-pattern }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}

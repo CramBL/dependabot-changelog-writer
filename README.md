@@ -70,6 +70,19 @@ jobs:
         # default: './CHANGELOG.md'
         changelog: ''
 
+        # The pattern/format for writing dependency update entries to the changelog.
+        #
+        # The keys [dep], [old], and [new] describe the location of the 
+        # dependency name, old version, and new version respectively.
+        #
+        # The order of the keys cannot be changed.
+        #
+        # To generate entries such as 'Bump npm from 1.0 to 1.2' the pattern is:
+        # 'Bump [dep] from [old] to [new]'.
+        # The default pattern would instead write that as: 'npm: 1.0 → 1.2'
+        # default: '[dep]: [old] → [new]'
+        update-entry-pattern: ''
+
         # The commit message for the changelog entry
         # default: 'Updated changelog with updated dependencies'
         commit-message: ''
