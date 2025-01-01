@@ -210,3 +210,39 @@ jobs:
 
         - name: cargo +${{ matrix.msrv }} check
           run: cargo check
+
+  release-if-version-bumped:
+    needs: [checks, os-check, audit, typos, coverage, test-run, build, msrv]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/trunk' && success()
+    permissions:
+      contents: write # This is required to create and push tags
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_WITH_REPO_SCOPE }}
+
+      - name: Get version from Cargo.toml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | cut -d '"' -f 2)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+            echo "Tag already exists"
+            echo "TAG_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "Tag does not exist"
+            echo "TAG_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Run release workflow
+        if: env.TAG_EXISTS == 'false'
+        uses: ./.github/workflows/release.yml
+        with:
+          version: ${{ env.VERSION }}
