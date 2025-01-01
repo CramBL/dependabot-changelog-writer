@@ -246,4 +246,4 @@ jobs:
         run: |
             gh workflow run release.yml -f version=${{ env.VERSION }} --ref ${{ github.ref }}
         env:
-         GH_TOKEN: ${{ github.token }}
+         GH_TOKEN: ${{ secrets.PAT_REPO }}
