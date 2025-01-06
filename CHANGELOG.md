@@ -11,3 +11,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `serde`: 1.0.216 → 1.0.217
 
+- `git2`: 0.19.0 → 0.20.0 ([#40](https://github.com/CramBL/dependabot-changelog-writer/pull/40))
+- `tempfile`: 3.14.0 → 3.15.0 ([#40](https://github.com/CramBL/dependabot-changelog-writer/pull/40))
