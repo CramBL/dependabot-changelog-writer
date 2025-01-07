@@ -10,3 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 
 - `serde`: 1.0.216 → 1.0.217
+
+### Misc
+
+- Fix `dependabot_changelog.yml` used the pre-v1 spelling of `push_token` instead of `push-token`
