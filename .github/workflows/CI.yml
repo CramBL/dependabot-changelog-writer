@@ -214,7 +214,7 @@ jobs:
   release-if-version-bumped:
     needs: [checks, os-check, audit, typos, coverage, test-run, build, msrv]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/trunk' && success()
+    if: github.ref == 'refs/heads/trunk' && success() && github.actor != 'dependabot[bot]'
     permissions:
       contents: write # This is required to create and push tags
 
