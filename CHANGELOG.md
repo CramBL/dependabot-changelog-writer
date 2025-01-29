@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- When `push-changes` was set to false, the would-be changelog diff was printed but the changelog was not actually changed, it is now. 
+
 ### Dependencies
 
 - `serde`: 1.0.216 → 1.0.217
