@@ -35,7 +35,7 @@ fn run() -> Result<()> {
             config.version_header(),
             config.section_header(),
         );
-        
+
         let orig_changelog = config.read_changelog()?;
         util::print_diff(&orig_changelog, &changelog_contents);
         config.write_changelog(changelog_contents)?;
