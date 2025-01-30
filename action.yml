@@ -72,6 +72,7 @@ runs:
         echo "action_repo=dependabot-changelog-writer" >> $GITHUB_ENV
         echo "action_org=CramBL" >> $GITHUB_ENV
         echo "binary_name=dependabot-changelog-writer" >> $GITHUB_ENV
+        echo "temp_dir=dependabot-changelog-writer-$(date +%s)" >> $GITHUB_ENV
 
     - name: Add binary extension
       shell: bash
@@ -99,15 +100,21 @@ runs:
     - name: Download Action
       shell: bash
       run: |
-        gh release download ${{ steps.get_action_version.outputs.version }} --repo ${{ env.action_org }}/${{ env.action_repo }} --pattern '${{ runner.os }}.tgz'
-        tar -xzf ${{ runner.os }}.tgz
+        mkdir -p ${{ env.temp_dir }}  # Create a unique temporary directory
+        gh release download ${{ steps.get_action_version.outputs.version }} --repo ${{ env.action_org }}/${{ env.action_repo }} --pattern '${{ runner.os }}.tgz' --dir ${{ env.temp_dir }}
+        tar -xzf ${{ env.temp_dir }}/${{ runner.os }}.tgz -C ${{ env.temp_dir }}
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
 
     - name: Run Action
       shell: bash
       id: run
-      run: ./${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.changelog-entry-pattern }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
+      run: ${{ env.temp_dir }}/${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.changelog-entry-pattern }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}
+
+    - name: Cleanup
+      shell: bash
+      run: |
+        rm -rf ${{ env.temp_dir }}
