@@ -1,3 +1,12 @@
+macro_rules! changelog {
+    ($file:expr) => {
+        include_str!(concat!("../../test_data/changelogs/", $file))
+    };
+}
+
+/// https://github.com/CramBL/dependabot-changelog-writer/issues/51
+pub const ISSUE_51_CHANGELOG: &str = changelog!("ISSUE_51.md");
+
 /// Simple changelog with only an 'Unreleased' section
 pub const EXAMPLE_EMPTY_CHANGELOG_CONTENTS: &str = r##"# Changelog
 

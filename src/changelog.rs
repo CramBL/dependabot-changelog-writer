@@ -449,4 +449,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             "Not idempotent!"
         );
     }
+
+    #[test]
+    fn test_add_changes_to_changelog_contents_issues51() {
+        let mut changelog_content = ISSUE_51_CHANGELOG.to_owned();
+        let entry_pattern = EntryPattern::default();
+        let changes = CHANGES_ISSUE_51.to_vec();
+        let version_header = VersionHeader::Unreleased;
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r#""#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // add_changes_to_changelog_contents(
+        //     changes.clone(),
+        //     &mut changelog_content,
+        //     EXAMPLE_MARKDOWN_PR_LINK,
+        //     &entry_pattern,
+        //     &version_header,
+        //     section_header,
+        // );
+        // assert_str_eq!(
+        //     &changelog_content,
+        //     expect_final_changelog_contents,
+        //     "Not idempotent!"
+        // );
+    }
 }
