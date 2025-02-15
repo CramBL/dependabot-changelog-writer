@@ -5,6 +5,10 @@ on:
     types: [opened, reopened, synchronize]
     branches: [trunk]
 
+env:
+  RUST_LOG: DEBUG
+  RUST_BACKTRACE: 1
+
 jobs:
   update-changelog:
     if: github.actor == 'dependabot[bot]'
