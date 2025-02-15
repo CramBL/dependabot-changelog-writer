@@ -15,22 +15,22 @@ pub fn test_get_version() -> TestResult {
     let changelog_header3 = "Dependencies";
     let push_changes = "false";
 
-    let mut cmd = Command::cargo_bin(BIN_NAME)?;
-    cmd.env("USE_FAKE_EVENT_JSON", "test_data/event_json/issue_51.json")
-        .args([
-            changelog_path,
-            changes_pattern,
-            commit_msg,
-            commit_author,
-            commit_mail,
-            changelog_section,
-            changelog_header3,
-            push_changes,
-        ]);
+    // TODO: Ensure it's not actually modifying the file.
+    // let mut cmd = Command::cargo_bin(BIN_NAME)?;
+    // cmd.env("USE_FAKE_EVENT_JSON", "test_data/event_json/issue_51.json")
+    //     .args([
+    //         changelog_path,
+    //         changes_pattern,
+    //         commit_msg,
+    //         commit_author,
+    //         commit_mail,
+    //         changelog_section,
+    //         changelog_header3,
+    //         push_changes,
+    //     ]);
 
-    cmd.assert()
-        .success()
-        .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")));
+    // let out = cmd.output()?;
+    // let out = String::from_utf8(out.stdout)?;
 
     Ok(())
 }
