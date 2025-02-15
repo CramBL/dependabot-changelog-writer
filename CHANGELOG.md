@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [#51](https://github.com/CramBL/dependabot-changelog-writer/issues/51) issue where a previous h3 section with similar dependencies caused invalid position calculations.
 
+### Changed
+
+- Add more logging
+
 ## [1.0.1]
 
 ### Changed
