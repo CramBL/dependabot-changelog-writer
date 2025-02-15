@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 
-ARG OPENSSL_VERSION=3.4.0
+ARG OPENSSL_VERSION=3.4.1
 
 RUN apt-get update && apt-get install -y \
     musl-tools \
