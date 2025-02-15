@@ -7,20 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2]
+
 ### Fixed
 
 - [#51](https://github.com/CramBL/dependabot-changelog-writer/issues/51) issue where a previous h3 section with similar dependencies caused invalid position calculations.
 
 ### Changed
 
-- Add more logging
-- If pushing changes fails, try again by force pushing
+- If pushing changes fails, try again with force pushing. Resolves issue where dependabot force-pushes mid-workflow.
 
 ### Dependencies
 
 - `auth-git2`: 0.5.5 → 0.5.7 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
 - `serde_json`: 1.0.137 → 1.0.138 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
 - `tempfile`: 3.15.0 → 3.16.0 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
+- `OpenSSL`: 3.4.0 → 3.4.1
+- `cargo update` 
 
 ## [1.0.1]
 

@@ -132,11 +132,13 @@ fn push_to_remote(
     remote: &mut Remote,
     git_ref: &str,
 ) -> Result<()> {
-    log::debug!("Pushing to remote: {}", git_ref);
+    log::debug!("Pushing to remote: {git_ref}");
     let git_auth = token_git_authenticator(push_token);
 
     if let Err(e) = git_auth.push(repo, remote, &[&format!("HEAD:{git_ref}")]) {
-        log::warn!("Push failed, does this job have write permissions? - Retrying with force push");
+        log::warn!(
+            "Push failed: {e}, does this job have write permissions? - Retrying with force push"
+        );
         if let Err(e) = git_auth.push(repo, remote, &[&format!("+HEAD:{git_ref}")]) {
             return Err(e.into());
         }

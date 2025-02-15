@@ -97,8 +97,8 @@ impl GithubEvent {
     pub fn markdown_pull_request_link(&self) -> String {
         format!(
             "[#{pr_number}]({pr_link})",
-            pr_number = self.pr_number,
-            pr_link = self.pr_link
+            pr_number = self.pull_request_number(),
+            pr_link = self.pull_request_link()
         )
     }
 }
