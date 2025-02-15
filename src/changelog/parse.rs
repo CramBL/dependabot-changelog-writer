@@ -354,4 +354,37 @@ mod tests {
         assert_eq!(to_replace[0].line_start, 345);
         assert_eq!(to_replace[0].line_len, 34);
     }
+
+    #[test]
+    fn test_find_insert_pos_issue51() {
+        let changelog_content = ISSUE_51_CHANGELOG;
+        let version_header = VersionHeader::Unreleased;
+        let section_header = "Dependencies";
+
+        let expect_h2_pos = 29;
+
+        let insert_pos = find_h2_insert_position(&changelog_content, &version_header).unwrap();
+        assert_eq!(insert_pos, expect_h2_pos);
+        eprintln!("{}", &changelog_content[..insert_pos - 1]);
+        assert!(changelog_content[..insert_pos - 1].ends_with("## [unreleased]"));
+
+        let (expect_h3_rel_pos_start, expect_h3_rel_pos_end) = (18, 104);
+
+        let insert_h3_pos =
+            find_existing_h3_insert_position(&changelog_content[insert_pos..], section_header);
+        assert_eq!(
+            insert_h3_pos,
+            Some((expect_h3_rel_pos_start, expect_h3_rel_pos_end))
+        );
+
+        let abs_h3_pos_start = expect_h2_pos + expect_h3_rel_pos_start;
+        let until_abs_h3_start = &changelog_content[..abs_h3_pos_start - 1];
+        eprintln!("{until_abs_h3_start}");
+        assert!(until_abs_h3_start.ends_with(&format!("### {}", section_header)));
+
+        let abs_h3_pos_end = expect_h2_pos + expect_h3_rel_pos_end;
+        let end_of_h3_plus_11_chars = &changelog_content[abs_h3_pos_end..abs_h3_pos_end + 11];
+        eprintln!("{}", end_of_h3_plus_11_chars);
+        assert!(end_of_h3_plus_11_chars.ends_with("## [0.4.2]"));
+    }
 }
