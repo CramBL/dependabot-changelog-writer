@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Add more logging
+- If pushing changes fails, try again by force pushing
 
 ## [1.0.1]
 
