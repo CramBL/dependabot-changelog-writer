@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add more logging
 - If pushing changes fails, try again by force pushing
 
+### Dependencies
+
+- `auth-git2`: 0.5.5 → 0.5.7 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
+- `serde_json`: 1.0.137 → 1.0.138 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
+- `tempfile`: 3.15.0 → 3.16.0 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
+
 ## [1.0.1]
 
 ### Changed
