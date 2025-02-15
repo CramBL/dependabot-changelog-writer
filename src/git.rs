@@ -34,10 +34,6 @@ pub fn add_commit_and_push(
     log::debug!("Fetching remote branch: {}", branch_name);
     let mut remote = fetch_remote_branch(&repo, remote_name, branch_name)?;
 
-    log::debug!(
-        "Staging changes for changelog path: {:?}",
-        config.changelog_path()
-    );
     let index_tree = stage_changes(&repo, config.changelog_path())?;
 
     // Skip commit if no changes
@@ -47,7 +43,6 @@ pub fn add_commit_and_push(
         return Ok(());
     }
 
-    log::debug!("Creating commit");
     create_commit(&repo, config, &index_tree)?;
 
     // Push changes to the remote
@@ -64,7 +59,6 @@ fn fetch_remote_branch<'r>(
 ) -> Result<Remote<'r>> {
     log::debug!("Finding remote: {}", remote_name);
     let mut remote = repo.find_remote(remote_name)?;
-    log::debug!("Creating git authenticator");
     let git_auth = token_git_authenticator(github_env::gh_token());
     log::debug!("Fetching remote branch: {}", branch_name);
     git_auth.fetch(
@@ -113,6 +107,7 @@ fn create_commit(
     log::debug!("Creating commit with message: {}", config.commit_message());
     let head_ref = repo.head()?;
     let head_commit = head_ref.peel_to_commit()?;
+    log::debug!("current head_commit: {head_commit:?}");
     let commit_signature = config.commit_signature()?;
     repo.commit(
         Some("HEAD"),
@@ -123,11 +118,11 @@ fn create_commit(
         &[&head_commit],
     )?;
 
+    log::debug!("new head_commit: {:?}", repo.head()?.peel_to_commit()?);
     Ok(())
 }
 
 fn token_git_authenticator(token: &str) -> GitAuthenticator {
-    log::debug!("Creating git authenticator with token");
     GitAuthenticator::new_empty().add_plaintext_credentials("github.com", "x-access-token", token)
 }
 
