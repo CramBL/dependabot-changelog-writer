@@ -9,7 +9,7 @@ pub enum OldVersion<'s> {
     FromChangelog(String),
 }
 
-impl<'s> OldVersion<'s> {
+impl OldVersion<'_> {
     pub fn len(&self) -> usize {
         match self {
             // Comes from parsing the Dependabot PR body
