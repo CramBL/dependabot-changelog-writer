@@ -31,11 +31,17 @@ pub fn add_changes_to_changelog_contents(
     let h2_insert_pos = parse::find_h2_insert_position(changelog_content, version_header)
         .expect("Could not find the specified version h2 header");
 
-    if let Some((existing_h3_start, existing_h3_insert_pos)) =
+    log::debug!("h2_insert_pos={h2_insert_pos}");
+    log::debug!("Remaining string: {}", &changelog_content[h2_insert_pos..]);
+
+    if let Some((existing_h3_rel_start, existing_h3_rel_insert_pos)) =
         parse::find_existing_h3_insert_position(&changelog_content[h2_insert_pos..], section_header)
     {
+        let abs_existing_h3_start = h2_insert_pos + existing_h3_rel_start;
+        let abs_existing_h3_insert_pos = h2_insert_pos + existing_h3_rel_insert_pos;
+        log::debug!("abs_existing_h3_start={abs_existing_h3_start}, abs_existing_h3_insert_pos={abs_existing_h3_insert_pos}");
         let existing_deps = parse::find_existing_dependency_lines_to_replace(
-            &changelog_content[existing_h3_start..],
+            &changelog_content[abs_existing_h3_start..abs_existing_h3_insert_pos],
             &mut changes,
         );
 
@@ -44,7 +50,11 @@ pub fn add_changes_to_changelog_contents(
         // that way the next content we might have to update doesn't change position
         // and we don't have to keep track of an intermediate offset
         for line in existing_deps.iter().rev() {
-            let range_to_remove = line.range_offset(existing_h3_start);
+            let range_to_remove = line.range_offset(abs_existing_h3_start);
+            log::debug!(
+                "Removing previous dependency entry: {}",
+                &changelog_content[range_to_remove.clone()]
+            );
             debug_assert_eq!(
                 changelog_content[range_to_remove.clone()]
                     .matches('\n')
@@ -56,7 +66,8 @@ pub fn add_changes_to_changelog_contents(
             string_offset += range_to_remove.len();
         }
         let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
-        let mut changes_insert_pos = h2_insert_pos + existing_h3_insert_pos - string_offset;
+        let mut changes_insert_pos = abs_existing_h3_insert_pos - string_offset;
+        log::debug!("changes_insert_pos={changes_insert_pos}");
         let three_prev_chars = &changelog_content[changes_insert_pos - 3..changes_insert_pos];
         if three_prev_chars == "\n\n\n" {
             // Special handling for the case where the h3 section header already contains
@@ -66,6 +77,10 @@ pub fn add_changes_to_changelog_contents(
             // one character back.
             changes_insert_pos -= 1;
         }
+        log::info!(
+            "Inserting changes immediately after the following content: {}",
+            &changelog_content[..=changes_insert_pos]
+        );
         changelog_content.insert_str(changes_insert_pos, &changes_md);
     } else {
         let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
@@ -448,5 +463,124 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             expect_final_changelog_contents,
             "Not idempotent!"
         );
+    }
+
+    #[test]
+    fn test_add_changes_to_changelog_contents_issues51() {
+        let mut changelog_content = ISSUE_51_CHANGELOG.to_owned();
+        let entry_pattern = EntryPattern::default();
+        let changes = CHANGES_ISSUE_51.to_vec();
+        let version_header = VersionHeader::Unreleased;
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r##"# Changelog
+
+## [unreleased]
+
+### Dependencies
+
+- `clap`: 4.5.26 → 4.5.28 ([#1](https://github.com/user/repo/pull/1))
+- `clap_complete`: 4.5.42 → 4.5.44 ([#1](https://github.com/user/repo/pull/1))
+- `mdns-sd`: 0.13.1 → 0.13.2 ([#1](https://github.com/user/repo/pull/1))
+- `strum`: 0.26.3 → 0.27.0 ([#1](https://github.com/user/repo/pull/1))
+
+## [0.4.2]
+
+### Dependencies
+
+- `mdns-sd`: 0.13.0 → 0.13.1
+- `crambl/dependabot-changelog-writer`: 0.4.0 → 0.5.0
+- `crate-ci/typos`: 1.28.3 → 1.29.4 ([#47](https://github.com/CramBL/fidelityfetch/pull/47))
+- `axum`: 0.7.9 → 0.8.1 ([#48](https://github.com/CramBL/fidelityfetch/pull/48))
+- `clap`: 4.5.23 → 4.5.26 ([#49](https://github.com/CramBL/fidelityfetch/pull/49))
+- `clap_complete`: 4.5.38 → 4.5.42 ([#49](https://github.com/CramBL/fidelityfetch/pull/49))
+- `tokio`: 1.42.0 → 1.43.0 ([#49](https://github.com/CramBL/fidelityfetch/pull/49))
+- `thiserror`: 2.0.7 → 2.0.11 ([#49](https://github.com/CramBL/fidelityfetch/pull/49))
+
+## [0.4.1]
+
+### Changed
+
+- Reduce response size by trimming white space
+- Make the file list more compact
+
+## [0.4.0]
+
+### Added
+
+- Allow logging to journald explicitly
+- Allow setting logging destination to either `journald` (unix only), `stderr`, or `stdout`.
+
+### Fix
+
+- Main process now exits with a non-zero exit when failing to bind to a port.
+
+### Misc.
+
+- Update dependencies
+
+## [0.3.3]
+
+### Changed
+
+- Update dependencies
+
+### Internals
+
+- Refactors
+- More tests
+
+## [0.3.2]
+
+### Added
+
+- npm publish job
+
+## [0.3.1]
+
+### Changed
+
+- Update dependencies to get some critical fixes to some async dependencies.
+
+## [0.3.0]
+
+### Added
+
+- Recognize and add icons to many more filetypes
+- Better error messages
+
+## [0.2.0]
+
+### Added
+
+- Completions for bash, zsh, fish, powershell, elvish.
+- Favicon.ico
+- Various tweaks
+
+## [0.1.1]
+
+### Fix
+
+- Paths with spaces and non-English letters not being recognized
+"##;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
     }
 }

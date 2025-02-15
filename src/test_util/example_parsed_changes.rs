@@ -24,3 +24,10 @@ pub const EXAMPLE_CHANGES_SMALL_WITH_SHA1: &[DependabotChange<'_>] = &[
         "7ca345011ac4304463197fac0e56eab1bc7e6af0",
     ),
 ];
+
+pub const CHANGES_ISSUE_51: &[DependabotChange<'_>] = &[
+    DependabotChange::new("`clap`", "4.5.27", "4.5.28"),
+    DependabotChange::new("`clap_complete`", "4.5.42", "4.5.44"),
+    DependabotChange::new("`mdns-sd`", "0.13.1", "0.13.2"),
+    DependabotChange::new("`strum`", "0.26.3", "0.27.0"),
+];

@@ -14,3 +14,5 @@ pub const DEPENDABOT_BODY_1_SUBMODULE_SHORT_SHA: &str =
     dependabot_body!("1_submodule_short_sha.md");
 pub const DEPENDABOT_BODY_1_DOCKER_NOVEL_VERSION: &str =
     dependabot_body!("1_docker_novel_version.md");
+
+pub const DEPENDABOT_BODY_ISSUE_51: &str = dependabot_body!("ISSUE_51.md");

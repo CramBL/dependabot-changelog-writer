@@ -234,4 +234,10 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             DependabotChange::new("baz", "2024.1.2", "2025.1.2-rc1")
         );
     }
+
+    #[test]
+    fn test_parse_body_issue51() {
+        let changes = parse_changes(DEPENDABOT_BODY_ISSUE_51);
+        assert_eq!(changes, CHANGES_ISSUE_51);
+    }
 }
