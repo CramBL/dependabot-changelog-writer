@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Dependencies
+
+- `tempfile`: 3.16.0 → 3.17.0 ([#59](https://github.com/CramBL/dependabot-changelog-writer/pull/59))
+
 ## [1.0.2]
 
 ### Fixed
