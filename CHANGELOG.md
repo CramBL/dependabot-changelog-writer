@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- `tempfile`: 3.16.0 → 3.17.0 ([#59](https://github.com/CramBL/dependabot-changelog-writer/pull/59))
+- `log`: 0.4.25 → 0.4.26 ([#60](https://github.com/CramBL/dependabot-changelog-writer/pull/60))
+- `serde`: 1.0.217 → 1.0.218 ([#60](https://github.com/CramBL/dependabot-changelog-writer/pull/60))
+- `serde_json`: 1.0.138 → 1.0.139 ([#60](https://github.com/CramBL/dependabot-changelog-writer/pull/60))
+- `tempfile`: 3.16.0 → 3.17.1 ([#60](https://github.com/CramBL/dependabot-changelog-writer/pull/60))
 
 ## [1.0.2]
 
