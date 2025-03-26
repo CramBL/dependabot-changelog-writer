@@ -30,7 +30,7 @@ name: Dependabot Changelog Entry
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
     branches: [main] # Your default branch
 
 jobs:
