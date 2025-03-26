@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3]
+
 ### Changed
 
 - No longer statically link OpenSSL on the linux build. Instead we rely on the OpenSSL lib on the GitHub runner, ensuring continuous upgrade of OpenSSL and vastly reducing binary size.
