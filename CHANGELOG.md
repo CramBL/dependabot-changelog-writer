@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 
 - `log`: 0.4.26 → 0.4.27 ([#65](https://github.com/CramBL/dependabot-changelog-writer/pull/65))
+- `env_logger`: 0.11.7 → 0.11.8 ([#66](https://github.com/CramBL/dependabot-changelog-writer/pull/66))
 
 ## [1.0.3]
 
