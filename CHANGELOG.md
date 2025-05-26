@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `assert_cmd`: 2.0.16 → 2.0.17 ([#67](https://github.com/CramBL/dependabot-changelog-writer/pull/67))
 - `git2`: 0.20.1 → 0.20.2 ([#68](https://github.com/CramBL/dependabot-changelog-writer/pull/68))
 - `tempfile`: 3.19.1 → 3.20.0 ([#68](https://github.com/CramBL/dependabot-changelog-writer/pull/68))
+- `auth-git2`: 0.5.7 → 0.5.8 ([#70](https://github.com/CramBL/dependabot-changelog-writer/pull/70))
 
 ## [1.0.3]
 
