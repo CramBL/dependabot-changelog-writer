@@ -4,12 +4,12 @@ author: Marc Beck König <mbkj@tutamail.com>
 branding:
   color: blue
   icon: align-justify
-  
+
 inputs:
   changelog:
-    description: 'Path of the changelog relative to the project root'
+    description: "Path of the changelog relative to the project root"
     required: true
-    default: './CHANGELOG.md'
+    default: "./CHANGELOG.md"
   changelog-entry-pattern:
     description: >
       Template string defining how dependency updates are formatted in changelog entries.
@@ -25,41 +25,41 @@ inputs:
       - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
       - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
     required: true
-    default: '[dep]: [old] → [new] ([pr-link])'
+    default: "[dep]: [old] → [new] ([pr-link])"
   commit-message:
-    description: 'The commit message for the changelog entry'
+    description: "The commit message for the changelog entry"
     required: true
-    default: 'Updated changelog with updated dependencies'
+    default: "Updated changelog with updated dependencies"
   committer-name:
-    description: 'The name of the custom committer you want to use'
+    description: "The name of the custom committer you want to use"
     required: true
-    default: 'github-actions[bot]'
+    default: "github-actions[bot]"
   committer-email:
-    description: 'The email of the custom committer you want to use'
+    description: "The email of the custom committer you want to use"
     required: true
-    default: 'github-actions[bot]@users.noreply.github.com'
+    default: "github-actions[bot]@users.noreply.github.com"
   version:
     description: >
-      The version/H2 header to find in the CHANGELOG to add dependabot entries to 
+      The version/H2 header to find in the CHANGELOG to add dependabot entries to
       matches whether or not the version is in brackets e.g. [0.1.0] and 0.1.0 are
       both valid. if set to 'unreleased' it will match 'unreleased' case-insensitive.
     required: true
-    default: 'unreleased'
+    default: "unreleased"
   section-header:
-    description: 'The section header to add the changelog entry under'
+    description: "The section header to add the changelog entry under"
     required: true
-    default: 'Dependencies'
+    default: "Dependencies"
   push-changes:
-    description: 'Whether or not to add, commit, & push the modified changelog. Note: If no changes are made, no commit is made either.'
+    description: "Whether or not to add, commit, & push the modified changelog. Note: If no changes are made, no commit is made either."
     required: true
-    default: 'true'
+    default: "true"
 
   push-token:
-    description: 'The GitHub token to use for git push, defaults to workflow token'
+    description: "The GitHub token to use for git push, defaults to workflow token"
     required: true
     default: ${{ github.token }}
   action-download-token:
-    description: 'The GitHub token to use for downloading the action, defaults to workflow token'
+    description: "The GitHub token to use for downloading the action, defaults to workflow token"
     required: true
     default: ${{ github.token }}
 
