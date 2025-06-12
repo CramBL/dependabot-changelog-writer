@@ -64,7 +64,7 @@ jobs:
       contents: write # Needed for pushing commit
     steps:
     - uses: actions/checkout@v4
-    - uses: crambl/dependabot-changelog-writer@trunk # or specific tag
+    - uses: crambl/dependabot-changelog-writer@trunk # or specific tag or SHA (needs to match a tag)
       with:
         # Path of the changelog relative to the project root
         # default: './CHANGELOG.md'
