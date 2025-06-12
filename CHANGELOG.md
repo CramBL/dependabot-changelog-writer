@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0]
+
 ### Changed
 
 - Make it possible to use a git SHA to pin the action (the given SHA has to have an associated tag)
