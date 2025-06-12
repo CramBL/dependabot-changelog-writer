@@ -150,7 +150,7 @@ jobs:
         run: |
           cargo build --release
           ldd target/release/${{ env.binary_name }}
-            
+
       - name: Build macos
         if: ${{ matrix.os == 'macos-latest' }}
         run: |
