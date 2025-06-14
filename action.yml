@@ -95,8 +95,11 @@ runs:
           version="$(gh api -H "Accept: application/vnd.github+json" \
                             -H "X-GitHub-Api-Version: 2022-11-28" \
                             /repos/${action_repository}/git/refs/tags \
-                            | jq --raw-output --arg sha "${action_ref}" \
-                                '[.[] | select(.object.sha == $sha) | .ref | split("/")[-1]][-1] // ""')"
+                            | jq --raw-output --arg sha "${action_ref}" '[.[] \
+                                | select(.object.sha == $sha) \
+                                | .ref \
+                                | split("/")[-1]][-1] // ""' \
+                                )"
           if [[ -z "${version}" ]]; then
             echo "Could not find a tag with the digest ${action_ref}" >&2
             exit 1
@@ -115,7 +118,10 @@ runs:
       shell: bash
       run: |
         mkdir -p ${{ env.temp_dir }}  # Create a unique temporary directory
-        gh release download ${{ steps.get_action_version.outputs.version }} --repo ${{ env.action_org }}/${{ env.action_repo }} --pattern '${{ runner.os }}.tgz' --dir ${{ env.temp_dir }}
+        gh release download ${{ steps.get_action_version.outputs.version }} \
+            --repo ${{ env.action_org }}/${{ env.action_repo }} \
+            --pattern '${{ runner.os }}.tgz' \
+            --dir ${{ env.temp_dir }}
         tar -xzf ${{ env.temp_dir }}/${{ runner.os }}.tgz -C ${{ env.temp_dir }}
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
@@ -123,7 +129,15 @@ runs:
     - name: Run Action
       shell: bash
       id: run
-      run: ${{ env.temp_dir }}/${{ runner.os }}/${{ env.binary_name }} "${{ inputs.changelog }}" "${{ inputs.changelog-entry-pattern }}" "${{ inputs.commit-message }}" "${{ inputs.committer-name }}" "${{ inputs.committer-email }}" "${{ inputs.version }}" "${{ inputs.section-header }}" "${{ inputs.push-changes }}"
+      run: ${{ env.temp_dir }}/${{ runner.os }}/${{ env.binary_name }} \
+        '${{ inputs.changelog }}' \
+        '${{ inputs.changelog-entry-pattern }}' \
+        '${{ inputs.commit-message }}' \
+        '${{ inputs.committer-name }}' \
+        '${{ inputs.committer-email }}' \
+        '${{ inputs.version }}' \
+        '${{ inputs.section-header }}' \
+        '${{ inputs.push-changes }}'
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}

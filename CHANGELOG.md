@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1]
+
+### Fixed
+
+- Ensure inputs passed as arguments to the binary are not interpreted by bash before hand, fixes [#75](https://github.com/CramBL/dependabot-changelog-writer/issues/75)
+
 ## [1.1.0]
 
 ### Changed
@@ -57,13 +63,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `serde_json`: 1.0.137 → 1.0.138 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
 - `tempfile`: 3.15.0 → 3.16.0 ([#54](https://github.com/CramBL/dependabot-changelog-writer/pull/54))
 - `OpenSSL`: 3.4.0 → 3.4.1
-- `cargo update` 
+- `cargo update`
 
 ## [1.0.1]
 
 ### Changed
 
-- When `push-changes` was set to false, the would-be changelog diff was printed but the changelog was not actually changed, it is now. 
+- When `push-changes` was set to false, the would-be changelog diff was printed but the changelog was not actually changed, it is now.
 - When the actions runs, it now downloads to a uniquely named temporary directory, and cleans it up before the next step.
 
 ### Dependencies

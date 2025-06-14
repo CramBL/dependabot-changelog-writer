@@ -125,7 +125,17 @@ jobs:
           RUST_LOG: DEBUG
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
-        run: cargo run -- "CHANGELOG.md" "📝 Update [dep] from [old] to [new]" "Some commit message" "github-actions[bot]" "github-actions[bot]@users.noreply.github.com" "Unreleased" "section header 3" "false"
+        shell: bash
+        # Test for https://github.com/CramBL/dependabot-changelog-writer/issues/75
+        run: cargo run -- \
+            "CHANGELOG.md" \
+            'Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_' \
+            "Some commit message" \
+            "github-actions[bot]" \
+            "github-actions[bot]@users.noreply.github.com" \
+            "Unreleased" \
+            "section header 3" \
+            "false"
 
   build:
     strategy:
@@ -177,14 +187,14 @@ jobs:
           RUST_LOG: DEBUG
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
-        run: ./${{ env.binary_name }} "CHANGELOG.md" \
-                                    "📝 Update [dep] from [old] to🚀 [new]🍄"
-                                    "commit msg" \
-                                    "github-actions[bot]" \
-                                    "github-actions[bot]@users.noreply.github.com" \
-                                    "Unreleased" \
-                                    "section header 3" \
-                                    "false"
+        run: ./${{ env.binary_name }} 'CHANGELOG.md' \
+                                    '📝 Update [dep] from [old] to🚀 [new]🍄'
+                                    'commit msg' \
+                                    'github-actions[bot]' \
+                                    'github-actions[bot]@users.noreply.github.com' \
+                                    'Unreleased' \
+                                    'section header 3' \
+                                    'false'
 
   msrv:
       # check that we can build using the minimal rust version that is specified by this crate
