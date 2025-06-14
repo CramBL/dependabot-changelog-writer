@@ -51,31 +51,42 @@ impl Config {
         let mut args = env::args().skip(1);
 
         let changelog_path = next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
-        log::debug!("changelog_path={changelog_path}");
+        log::debug!("changelog-path={changelog_path}");
 
         let changelog_entry_pattern =
-            next_arg_trimmed(&mut args).ok_or("Missing changelog path")?;
-        log::debug!("changelog_entry_pattern={changelog_entry_pattern}");
+            next_arg_trimmed(&mut args).ok_or("Missing changelog-entry-pattern")?;
+        log::debug!("changelog-entry-pattern={changelog_entry_pattern}");
 
-        let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit message")?;
-        log::debug!("commit_message={commit_message}");
+        let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit-message")?;
+        log::debug!("commit-message={commit_message}");
 
-        let committer_name = next_arg_trimmed(&mut args).ok_or("Missing committer name")?;
-        log::debug!("committer_name={committer_name}");
+        let committer_name = next_arg_trimmed(&mut args).ok_or("Missing committer-name")?;
+        log::debug!("committer-name={committer_name}");
 
-        let committer_email = next_arg_trimmed(&mut args).ok_or("Missing committer email")?;
-        log::debug!("committer_email={committer_email}");
+        let committer_email = next_arg_trimmed(&mut args).ok_or("Missing committer-email")?;
+        log::debug!("committer-email={committer_email}");
 
-        let version_header = next_arg_trimmed(&mut args).ok_or("Missing section header")?;
-        log::debug!("version_header={version_header}");
+        let version_header = next_arg_trimmed(&mut args).ok_or("Missing version-header")?;
+        log::debug!("version-header={version_header}");
 
-        let section_header = next_arg_trimmed(&mut args).ok_or("Missing section header")?;
-        log::debug!("section_header={section_header}");
+        let section_header = next_arg_trimmed(&mut args).ok_or("Missing section-header")?;
+        log::debug!("section-header={section_header}");
 
-        let push_changes = next_arg_trimmed(&mut args).ok_or("Missing push_changes setting")?;
-        log::debug!("push_changes={push_changes}");
+        let push_changes = next_arg_trimmed(&mut args).ok_or("Missing push-changes setting")?;
+        log::debug!("push-changes={push_changes}");
 
-        let dry_run = !push_changes.eq_ignore_ascii_case("true");
+        let dry_run = next_arg_trimmed(&mut args).is_some_and(|s| s == "dry-run");
+        log::debug!("dry run arg={dry_run}");
+
+        let dry_run = !push_changes.eq_ignore_ascii_case("true") || dry_run;
+        log::info!("dry-run: {dry_run}");
+
+        if section_header.starts_with("###") {
+            log::error!("Invalid section header: Starts with '###' when an h3 header already implies a prefix of '###'");
+            return Err(format!("Invalid section header '{section_header}', expected a section header such as 'Changes'.\n\
+            NOTE: section header is assumed to be an h3 header, meaning it implies a prefix of '###' such as '### Changes'\n\
+            HINT: Try removing the '###' prefix").into());
+        }
 
         if args.next().is_some() {
             return Err("Too many arguments provided".into());
@@ -87,7 +98,11 @@ impl Config {
 
         let changelog_path = PathBuf::from(changelog_path);
         if !changelog_path.is_file() {
-            return Err("The specified changelog could not be found".into());
+            return Err(format!(
+                "The specified changelog '{}' could not be found",
+                changelog_path.display()
+            )
+            .into());
         }
 
         let entry_pattern = EntryPattern::new(&changelog_entry_pattern)?;

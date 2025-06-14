@@ -1,4 +1,8 @@
-use std::{env, path::PathBuf};
+use std::{
+    env::{self, current_dir},
+    fs,
+    path::{Path, PathBuf},
+};
 
 use crate::github_env::github_event_path;
 
@@ -22,14 +26,19 @@ impl GithubEvent {
         log::debug!("event_path={}", event_path.display());
 
         if !event_path.is_file() {
-            return Err(format!("No github event file at: {}", event_path.display()).into());
+            let parent = event_path.parent().unwrap_or_else(|| Path::new(""));
+            let abs_path = parent.join(&event_path).display().to_string();
+            if let Ok(cwd) = current_dir() {
+                eprintln!("Current working directory: {}", cwd.display());
+            }
+            return Err(format!("No github event file at: {abs_path}").into());
         }
 
         Self::from_path(event_path)
     }
 
     pub fn from_path(event_json_path: PathBuf) -> Result<Self> {
-        let event_json = std::fs::read_to_string(event_json_path)?;
+        let event_json = fs::read_to_string(event_json_path)?;
         Self::new(event_json)
     }
 

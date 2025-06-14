@@ -38,10 +38,10 @@ fn run() -> Result<()> {
 
         let orig_changelog = config.read_changelog()?;
         util::print_diff(&orig_changelog, &changelog_contents);
-        config.write_changelog(changelog_contents)?;
         if config.dry_run() {
             log::debug!("Dry run: Skipping commit");
         } else {
+            config.write_changelog(changelog_contents)?;
             git::add_commit_and_push(&config, "origin", event.branch_ref(), event.branch_name())?;
         }
     } else {
