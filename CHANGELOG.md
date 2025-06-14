@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2]
+
+### Changed
+
+- Improved various error messages
+- Disallow prefixing the `section-header` input with `###` as it is already implied and leads to unexpected behaviour
+
 ## [1.1.1]
 
 ### Fixed
