@@ -163,6 +163,7 @@ mod tests {
     fn create_test_config() -> config::Config {
         config::Config::new(
             false,
+            false,
             PathBuf::from("CHANGELOG.md"),
             EntryPattern::default(),
             CommitSettings {

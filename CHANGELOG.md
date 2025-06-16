@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4]
+
+### Fixed
+
+- When `push-changes` was set to false, the would-be changelog diff was printed but the changelog was not actually changed, it is now.
+
 ## [1.1.3]
 
 ### Fixed

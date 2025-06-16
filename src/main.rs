@@ -39,10 +39,20 @@ fn run() -> Result<()> {
         let orig_changelog = config.read_changelog()?;
         util::print_diff(&orig_changelog, &changelog_contents);
         if config.dry_run() {
-            log::debug!("Dry run: Skipping commit");
+            log::debug!("Dry run: Skipping writing to changelog");
+            log::debug!("Dry run: Skipping commit & push");
         } else {
             config.write_changelog(changelog_contents)?;
-            git::add_commit_and_push(&config, "origin", event.branch_ref(), event.branch_name())?;
+            if config.push_changes() {
+                git::add_commit_and_push(
+                    &config,
+                    "origin",
+                    event.branch_ref(),
+                    event.branch_name(),
+                )?;
+            } else {
+                log::debug!("push-changes disabled: Skipping commit & push");
+            }
         }
     } else {
         log::warn!("Pull request body is empty");
