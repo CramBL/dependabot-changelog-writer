@@ -95,11 +95,9 @@ runs:
           version="$(gh api -H "Accept: application/vnd.github+json" \
                             -H "X-GitHub-Api-Version: 2022-11-28" \
                             /repos/${action_repository}/git/refs/tags \
-                            | jq --raw-output --arg sha "${action_ref}" '[.[] \
-                                | select(.object.sha == $sha) \
-                                | .ref \
-                                | split("/")[-1]][-1] // ""' \
-                                )"
+                            | jq --raw-output --arg sha "${action_ref}" \
+                                '[.[] | select(.object.sha == $sha) | .ref | split("/")[-1]][-1] // ""' \
+                            )"
           if [[ -z "${version}" ]]; then
             echo "Could not find a tag with the digest ${action_ref}" >&2
             exit 1
