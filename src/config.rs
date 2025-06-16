@@ -39,6 +39,7 @@ pub struct CommitSettings {
 #[derive(Debug)]
 pub struct Config {
     dry_run: bool,
+    push_changes: bool,
     changelog_path: PathBuf,
     entry_pattern: EntryPattern,
     commit_settings: CommitSettings,
@@ -74,12 +75,10 @@ impl Config {
 
         let push_changes = next_arg_trimmed(&mut args).ok_or("Missing push-changes setting")?;
         log::debug!("push-changes={push_changes}");
+        let push_changes = push_changes.eq_ignore_ascii_case("true");
 
         let dry_run = next_arg_trimmed(&mut args).is_some_and(|s| s == "dry-run");
-        log::debug!("dry run arg={dry_run}");
-
-        let dry_run = !push_changes.eq_ignore_ascii_case("true") || dry_run;
-        log::info!("dry-run: {dry_run}");
+        log::info!("dry-run={dry_run}");
 
         if section_header.starts_with("###") {
             log::error!("Invalid section header: Starts with '###' when an h3 header already implies a prefix of '###'");
@@ -109,6 +108,7 @@ impl Config {
 
         Ok(Self::new(
             dry_run,
+            push_changes,
             changelog_path,
             entry_pattern,
             CommitSettings {
@@ -123,6 +123,7 @@ impl Config {
 
     pub const fn new(
         dry_run: bool,
+        push_changes: bool,
         changelog_path: PathBuf,
         entry_pattern: EntryPattern,
         commit_settings: CommitSettings,
@@ -131,6 +132,7 @@ impl Config {
     ) -> Self {
         Self {
             dry_run,
+            push_changes,
             changelog_path,
             entry_pattern,
             commit_settings,
@@ -168,6 +170,10 @@ impl Config {
 
     pub fn write_changelog(&self, contents: String) -> io::Result<()> {
         fs::write(&self.changelog_path, contents)
+    }
+
+    pub fn push_changes(&self) -> bool {
+        self.push_changes
     }
 
     pub fn dry_run(&self) -> bool {

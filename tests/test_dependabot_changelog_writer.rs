@@ -28,6 +28,7 @@ pub fn test_diff_issue51() -> TestResult {
     let changelog_section = "unreleased";
     let changelog_header3 = "Dependencies";
     let push_changes = "false";
+    let dry_run = "dry-run";
 
     let mut cmd = Command::cargo_bin(BIN_NAME)?;
     cmd.env("USE_FAKE_EVENT_JSON", "test_data/event_json/ISSUE_51.json")
@@ -41,6 +42,7 @@ pub fn test_diff_issue51() -> TestResult {
             changelog_section,
             changelog_header3,
             push_changes,
+            dry_run,
         ]);
 
     let out = cmd.output()?;
