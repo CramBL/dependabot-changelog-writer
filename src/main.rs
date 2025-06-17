@@ -43,16 +43,19 @@ fn run() -> Result<()> {
             log::debug!("Dry run: Skipping commit & push");
         } else {
             config.write_changelog(changelog_contents)?;
-            if config.push_changes() {
-                git::add_commit_and_push(
-                    &config,
-                    "origin",
-                    event.branch_ref(),
-                    event.branch_name(),
-                )?;
-            } else {
-                log::debug!("push-changes disabled: Skipping commit & push");
-            }
+            log::debug!("Opening repository in current directory");
+            let repo = git2::Repository::open(".")?;
+            // Fetch the remote branch first to ensure we have it locally
+            // this is necessary in actions triggered by an opened PR because
+            // they per default checkout branches detached from HEAD
+            log::debug!("Fetching remote branch: {}", event.branch_name());
+            let _remote = git::fetch_remote_branch(&repo, "origin", event.branch_name())?;
+
+            // if config.push_changes() {
+            //     git::add_commit_and_push(&config, remote, event.branch_ref())?;
+            // } else {
+            //     log::debug!("push-changes disabled: Skipping commit & push");
+            // }
         }
     } else {
         log::warn!("Pull request body is empty");

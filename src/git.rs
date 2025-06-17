@@ -12,28 +12,19 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 // and it cannot start with '.' or '..'
 // e.g. './CHANGELOG.md' is NOT valid
 fn sanitize_path(file_path: &Path) -> Result<PathBuf> {
-    log::debug!("Sanitizing path: {:?}", file_path);
+    log::debug!("Sanitizing path: {file_path:?}");
     let path_str = file_path.to_str().ok_or("Invalid path")?;
     let clean_path = path_str.trim_start_matches("./");
-    log::debug!("Sanitized path: {:?}", clean_path);
+    log::debug!("Sanitized path: {clean_path:?}");
     Ok(PathBuf::from(clean_path))
 }
 
 pub fn add_commit_and_push(
     config: &crate::config::Config,
-    remote_name: &str,
+    mut remote: Remote<'_>,
     branch_ref: &str,
-    branch_name: &str,
 ) -> Result<()> {
-    log::debug!("Opening repository in current directory");
     let repo = Repository::open(".")?;
-    // Fetch the remote branch first to ensure we have it locally
-    // this is necessary in actions triggered by an opened PR because
-    // they per default checkout branches detached from HEAD
-
-    log::debug!("Fetching remote branch: {}", branch_name);
-    let mut remote = fetch_remote_branch(&repo, remote_name, branch_name)?;
-
     let index_tree = stage_changes(&repo, config.changelog_path())?;
 
     // Skip commit if no changes
@@ -52,15 +43,15 @@ pub fn add_commit_and_push(
     Ok(())
 }
 
-fn fetch_remote_branch<'r>(
+pub fn fetch_remote_branch<'r>(
     repo: &'r Repository,
     remote_name: &str,
     branch_name: &str,
 ) -> Result<Remote<'r>> {
-    log::debug!("Finding remote: {}", remote_name);
+    log::debug!("Finding remote: {remote_name}");
     let mut remote = repo.find_remote(remote_name)?;
     let git_auth = token_git_authenticator(github_env::gh_token());
-    log::debug!("Fetching remote branch: {}", branch_name);
+    log::debug!("Fetching remote branch: {branch_name}");
     git_auth.fetch(
         repo,
         &mut remote,
@@ -73,17 +64,17 @@ fn fetch_remote_branch<'r>(
 }
 
 fn stage_changes<'r>(repo: &'r Repository, changelog_path: &Path) -> Result<git2::Tree<'r>> {
-    log::debug!("Staging changes for path: {:?}", changelog_path);
+    log::debug!("Staging changes for path: {changelog_path:?}");
     let mut index = repo.index()?;
     let clean_path = sanitize_path(changelog_path)?;
-    log::debug!("Adding path to index: {:?}", clean_path);
+    log::debug!("Adding path to index: {clean_path:?}");
     index.add_path(&clean_path)?;
     index.write()?;
 
     let tree_oid = index.write_tree()?;
-    log::debug!("Tree OID: {:?}", tree_oid);
+    log::debug!("Tree OID: {tree_oid:?}");
     let tree = repo.find_tree(tree_oid)?;
-    log::debug!("Tree found: {:?}", tree);
+    log::debug!("Tree found: {tree:?}");
     Ok(tree)
 }
 
