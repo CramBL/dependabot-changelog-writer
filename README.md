@@ -89,14 +89,6 @@ jobs:
         # default: 'Updated changelog with updated dependencies'
         commit-message: ''
 
-        # The name of the custom committer you want to use
-        # default: 'github-actions[bot]'
-        committer-name: ''
-
-        # The email of the custom committer you want to use
-        # default: 'github-actions[bot]@users.noreply.github.com'
-        committer-email: ''
-
         # The version/H2 header to find in the CHANGELOG to add dependabot entries to
         # matches whether or not the version is in brackets e.g. [0.1.0] and 0.1.0 are
         # both valid. if set to 'unreleased' it will match 'unreleased' case-insensitive.

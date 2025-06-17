@@ -30,14 +30,6 @@ inputs:
     description: "The commit message for the changelog entry"
     required: true
     default: "Updated changelog with updated dependencies"
-  committer-name:
-    description: "The name of the custom committer you want to use"
-    required: true
-    default: "github-actions[bot]"
-  committer-email:
-    description: "The email of the custom committer you want to use"
-    required: true
-    default: "github-actions[bot]@users.noreply.github.com"
   version:
     description: >
       The version/H2 header to find in the CHANGELOG to add dependabot entries to
@@ -131,8 +123,6 @@ runs:
         '${{ inputs.changelog }}' \
         '${{ inputs.changelog-entry-pattern }}' \
         '${{ inputs.commit-message }}' \
-        '${{ inputs.committer-name }}' \
-        '${{ inputs.committer-email }}' \
         '${{ inputs.version }}' \
         '${{ inputs.section-header }}' \
       env:

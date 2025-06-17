@@ -50,12 +50,6 @@ impl Config {
         let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit-message")?;
         log::debug!("commit-message={commit_message}");
 
-        let committer_name = next_arg_trimmed(&mut args).ok_or("Missing committer-name")?;
-        log::debug!("committer-name={committer_name}");
-
-        let committer_email = next_arg_trimmed(&mut args).ok_or("Missing committer-email")?;
-        log::debug!("committer-email={committer_email}");
-
         let version_header = next_arg_trimmed(&mut args).ok_or("Missing version-header")?;
         log::debug!("version-header={version_header}");
 
