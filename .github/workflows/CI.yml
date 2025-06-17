@@ -131,11 +131,9 @@ jobs:
             "CHANGELOG.md" \
             'Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_' \
             "Some commit message" \
-            "github-actions[bot]" \
-            "github-actions[bot]@users.noreply.github.com" \
             "Unreleased" \
             "section header 3" \
-            "false"
+            "true"
 
   build:
     strategy:
