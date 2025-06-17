@@ -86,12 +86,12 @@ mod tests {
         assert_eq!(changes.len(), 2);
         assert_eq!(
             changes[0],
-            DependabotChange::new("`crate-ci/typos`", "1.27.0", "1.28.4")
+            DependabotChange::new("crate-ci/typos", "1.27.0", "1.28.4")
         );
         assert_eq!(
             changes[1],
             DependabotChange::new(
-                "`docker/login-action`",
+                "docker/login-action",
                 "3d58c274f17dffee475a5520cbe67f0a882c4dbb",
                 "7ca345011ac4304463197fac0e56eab1bc7e6af0"
             )
@@ -116,32 +116,32 @@ mod tests {
         assert_eq!(changes.len(), 8);
         assert_eq!(
             changes[0],
-            DependabotChange::new("`serde`", "1.0.215", "1.0.216")
+            DependabotChange::new("serde", "1.0.215", "1.0.216")
         );
         assert_eq!(
             changes[1],
-            DependabotChange::new("`chrono`", "0.4.38", "0.4.39")
+            DependabotChange::new("chrono", "0.4.38", "0.4.39")
         );
         assert_eq!(
             changes[2],
-            DependabotChange::new("`semver`", "1.0.23", "1.0.24")
+            DependabotChange::new("semver", "1.0.23", "1.0.24")
         );
         assert_eq!(
             changes[3],
-            DependabotChange::new("`env_logger`", "0.11.5", "0.11.6")
+            DependabotChange::new("env_logger", "0.11.5", "0.11.6")
         );
-        assert_eq!(changes[4], DependabotChange::new("`zip`", "2.2.1", "2.2.2"));
+        assert_eq!(changes[4], DependabotChange::new("zip", "2.2.1", "2.2.2"));
         assert_eq!(
             changes[5],
-            DependabotChange::new("`wasm-bindgen-futures`", "0.4.47", "0.4.49")
+            DependabotChange::new("wasm-bindgen-futures", "0.4.47", "0.4.49")
         );
         assert_eq!(
             changes[6],
-            DependabotChange::new("`web-sys`", "0.3.74", "0.3.76")
+            DependabotChange::new("web-sys", "0.3.74", "0.3.76")
         );
         assert_eq!(
             changes[7],
-            DependabotChange::new("`thiserror`", "2.0.4", "2.0.9")
+            DependabotChange::new("thiserror", "2.0.4", "2.0.9")
         );
 
         let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
@@ -160,7 +160,7 @@ mod tests {
     #[test]
     fn test_parse_example_to_changes_7_crates_semver_custom_pattern() {
         let changes = EXAMPLE_CHANGES.to_vec();
-        let entry_pattern = &EntryPattern::new("Bump [dep] from [old] to [new]").unwrap();
+        let entry_pattern = &EntryPattern::new("Bump `[dep]` from [old] to [new]").unwrap();
 
         let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
@@ -183,14 +183,14 @@ mod tests {
 
         let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
-        - 📝 Update `serde` from 🩺1.0.215🩺 🚀 🍄1.0.216🍄\n\
-        - 📝 Update `chrono` from 🩺0.4.38🩺 🚀 🍄0.4.39🍄\n\
-        - 📝 Update `semver` from 🩺1.0.23🩺 🚀 🍄1.0.24🍄\n\
-        - 📝 Update `env_logger` from 🩺0.11.5🩺 🚀 🍄0.11.6🍄\n\
-        - 📝 Update `zip` from 🩺2.2.1🩺 🚀 🍄2.2.2🍄\n\
-        - 📝 Update `wasm-bindgen-futures` from 🩺0.4.47🩺 🚀 🍄0.4.49🍄\n\
-        - 📝 Update `web-sys` from 🩺0.3.74🩺 🚀 🍄0.3.76🍄\n\
-        - 📝 Update `thiserror` from 🩺2.0.4🩺 🚀 🍄2.0.9🍄\n";
+        - 📝 Update serde from 🩺1.0.215🩺 🚀 🍄1.0.216🍄\n\
+        - 📝 Update chrono from 🩺0.4.38🩺 🚀 🍄0.4.39🍄\n\
+        - 📝 Update semver from 🩺1.0.23🩺 🚀 🍄1.0.24🍄\n\
+        - 📝 Update env_logger from 🩺0.11.5🩺 🚀 🍄0.11.6🍄\n\
+        - 📝 Update zip from 🩺2.2.1🩺 🚀 🍄2.2.2🍄\n\
+        - 📝 Update wasm-bindgen-futures from 🩺0.4.47🩺 🚀 🍄0.4.49🍄\n\
+        - 📝 Update web-sys from 🩺0.3.74🩺 🚀 🍄0.3.76🍄\n\
+        - 📝 Update thiserror from 🩺2.0.4🩺 🚀 🍄2.0.9🍄\n";
         assert_str_eq!(changes_md, expect_md);
     }
 
