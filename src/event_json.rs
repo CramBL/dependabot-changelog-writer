@@ -1,3 +1,4 @@
+use std::io::Write as _;
 use std::{
     env::{self, current_dir},
     fs,
@@ -6,7 +7,13 @@ use std::{
 
 use crate::github_env::github_event_path;
 
+// The path on the runner to the file that sets variables from workflow commands.
+const ENV_VAR_GITHUB_EVENT_FILE: &str = "GITHUB_ENV";
+// The variable we export the branch name to, for later pushing a signed commit
+const ENV_GH_DCH_BRANCH_NAME: &str = "DCH_BRANCH_NAME";
+
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 pub struct GithubEvent {
     branch_ref: String,
     branch_name: String,
@@ -34,7 +41,21 @@ impl GithubEvent {
             return Err(format!("No github event file at: {abs_path}").into());
         }
 
-        Self::from_path(event_path)
+        let gh_event = Self::from_path(event_path)?;
+
+        // Export BRANCH_NAME for use in later GitHub Actions steps
+        if let Ok(env_path) = env::var(ENV_VAR_GITHUB_EVENT_FILE) {
+            let mut env_file = fs::OpenOptions::new().append(true).open(env_path)?;
+            let contents = format!("{ENV_GH_DCH_BRANCH_NAME}={}\n", gh_event.branch_name);
+            log::info!("Exporting to GitHub environment: '{contents}'");
+            env_file.write_all(contents.as_bytes())?;
+        } else {
+            log::warn!(
+                "{ENV_VAR_GITHUB_EVENT_FILE} is not set, cannot locate GitHub environment file"
+            );
+        }
+
+        Ok(gh_event)
     }
 
     pub fn from_path(event_json_path: PathBuf) -> Result<Self> {
@@ -114,9 +135,11 @@ impl GithubEvent {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use crate::test_util::*;
     use pretty_assertions::assert_str_eq;
+    use tempfile::NamedTempFile;
     use testresult::TestResult;
 
     #[test]
@@ -133,6 +156,36 @@ mod tests {
         assert_str_eq!(
             &gh_event.markdown_pull_request_link(),
             "[#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1)"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_branch_name_exported_to_github_env() -> TestResult {
+        // Create a temporary file to simulate the GITHUB_ENV file
+        let temp_env_file = NamedTempFile::new()?;
+        let env_file_path = temp_env_file.path().to_path_buf();
+
+        // Set the GITHUB_ENV environment variable to point to the temp file
+        env::set_var(ENV_VAR_GITHUB_EVENT_FILE, &env_file_path);
+
+        // Set up fake event JSON path
+        let fake_event_file = NamedTempFile::new()?;
+        fs::write(
+            fake_event_file.path(),
+            crate::test_util::EXAMPLE_PR_OPENED_EVENT_JSON,
+        )?;
+        env::set_var("USE_FAKE_EVENT_JSON", fake_event_file.path());
+
+        let gh_event = GithubEvent::load_from_env()?;
+
+        let env_contents = fs::read_to_string(env_file_path)?;
+        let expected = format!("{ENV_GH_DCH_BRANCH_NAME}={}\n", gh_event.branch_name());
+        assert_str_eq!(
+            expected,
+            env_contents,
+            "Expected env file to contain '{expected}', got:\n{env_contents}"
         );
 
         Ok(())
