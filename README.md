@@ -80,9 +80,9 @@ jobs:
         #
         # Examples:
         # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
-        # - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
+        # - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
         # - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
-        # default: '[dep]: [old] → [new] ([pr-link])'
+        # default: '`[dep]`: [old] → [new] ([pr-link])'
         changelog-entry-pattern: ''
 
         # The commit message for the changelog entry
