@@ -15,7 +15,7 @@ impl Default for EntryPattern {
 }
 
 impl EntryPattern {
-    const DEFAULT_PATTERN: &str = "[dep]: [old] → [new] ([pr-link])";
+    const DEFAULT_PATTERN: &str = "`[dep]`: [old] → [new] ([pr-link])";
 
     // Markdown prefix for a list entry
     const LINE_PREFIX: &'static str = "- ";
@@ -147,9 +147,9 @@ mod tests {
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
-            "- {{dep}}: {{old}} → {{new}} ({{pr-link}})\n"
+            "- `{{dep}}`: {{old}} → {{new}} ({{pr-link}})\n"
         );
-        assert_eq!(entry_pattern.min_len(), "- :  →  ()\n".len());
+        assert_eq!(entry_pattern.min_len(), "- ``:  →  ()\n".len());
     }
 
     #[test]

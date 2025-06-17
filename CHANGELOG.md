@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The name of updated dependencies is now sanitized for backticks (\`) enabling more customization for changelog patterns. **NOTE:** The default pattern produces the same changelog entries as they always did, but if you rely on a custom changelog pattern, you will have to change '[dep]' to '\`[dep]\`' to maintain the same pattern
+
 ## [1.1.4]
 
 ### Fixed

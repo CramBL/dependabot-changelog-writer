@@ -22,10 +22,10 @@ inputs:
 
       Examples:
       - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
-      - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
+      - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
       - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
     required: true
-    default: "[dep]: [old] → [new] ([pr-link])"
+    default: "`[dep]`: [old] → [new] ([pr-link])"
   commit-message:
     description: "The commit message for the changelog entry"
     required: true

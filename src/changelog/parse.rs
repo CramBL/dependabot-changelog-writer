@@ -53,7 +53,8 @@ pub(crate) fn find_old_ver_from_line(line: &str) -> Option<String> {
                 } else if ch == '`' && code_block {
                     if progress > 7 {
                         let line_offset = old_ver_start_pos + extra_offset;
-                        return Some(line[line_offset..line_offset + progress].to_owned());
+                        let old_ver = &line[line_offset..line_offset + progress];
+                        return Some(old_ver.to_owned());
                     }
                 } else if ch.is_ascii_digit() {
                     if progress == 1 {
@@ -189,7 +190,7 @@ pub fn find_new_h3_insert_position(changelog_content: &str) -> usize {
     content_pos
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DependencyEntryLine {
     line_start: usize,
     line_len: usize,
@@ -216,16 +217,47 @@ pub fn find_existing_dependency_lines_to_replace(
     for line in changelog.split_inclusive('\n') {
         for change in &mut *changes {
             if let Some(name_pos) = line.find(change.name) {
+                // We might have a partial match so we need to ensure it's not a match
+                // on e.g. 'clap' in 'clap_complete'
                 let end_of_name_pos = name_pos + change.name.len();
-                // Parse old version from semver or SHA1
-                if let Some(old_ver) = find_old_ver_from_line(&line[end_of_name_pos..]) {
-                    change.replace_old_version(old_ver);
-                    let existing_dep = DependencyEntryLine {
-                        line_start: current_pos,
-                        line_len: line.len(),
+                const VALID_SURROUNDING_CHARS_IF_EQ: [char; 3] = ['`', '_', '*'];
+                const EXTRA_VALID_POST_CHARS: [char; 2] = [':', '→'];
+
+                let valid_boundary = {
+                    let mut next_must_match = None;
+                    let pre_char_ok = if let Some(prev_char) = line.chars().nth(name_pos - 1) {
+                        if VALID_SURROUNDING_CHARS_IF_EQ.contains(&prev_char) {
+                            next_must_match = Some(prev_char);
+                        }
+                        prev_char.is_whitespace() || next_must_match.is_some()
+                    } else {
+                        true
                     };
-                    existing_deps.push(existing_dep);
-                    break;
+
+                    let post_char_ok = if let Some(next_char) = line.chars().nth(end_of_name_pos) {
+                        if let Some(must_match) = next_must_match {
+                            must_match == next_char
+                        } else {
+                            next_char.is_whitespace() || EXTRA_VALID_POST_CHARS.contains(&next_char)
+                        }
+                    } else {
+                        true
+                    };
+
+                    pre_char_ok && post_char_ok
+                };
+
+                if valid_boundary {
+                    // Parse old version from semver or SHA1
+                    if let Some(old_ver) = find_old_ver_from_line(&line[end_of_name_pos..]) {
+                        change.replace_old_version(old_ver);
+                        let existing_dep = DependencyEntryLine {
+                            line_start: current_pos,
+                            line_len: line.len(),
+                        };
+                        existing_deps.push(existing_dep);
+                        break;
+                    }
                 }
             }
         }
@@ -386,5 +418,61 @@ mod tests {
         let end_of_h3_plus_11_chars = &changelog_content[abs_h3_pos_end..abs_h3_pos_end + 11];
         eprintln!("{}", end_of_h3_plus_11_chars);
         assert!(end_of_h3_plus_11_chars.ends_with("## [0.4.2]"));
+    }
+
+    #[test]
+    fn test_find_existing_dependencies_to_replace() {
+        let changelog = r##"# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Some feature about the environment
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+- `env_logger`: 0.11.5 → 0.11.6
+- env: 0.1.5 → 0.3.2
+- envdir: 0.1.0 → 0.2.0
+- direnv: 1.1.0 → 2.1.0
+- env_loggerif: 1.1.5 → 1.1.6
+- `semver`: 1.0.23 → 1.0.24
+- update senvir from 0.2.1 to 0.2.3
+- update _envy_ from `0.1.1` to [0.1.2](https://github.com/foo/envy/releases/tag/v0.1.2)
+
+### Fix
+
+- Some issue
+"##;
+        let mut changes = vec![
+            DependabotChange::new("env", "0.3.2", "0.3.33"),
+            DependabotChange::new("env_logger", "0.11.8", "0.12.0"),
+        ];
+        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes);
+        assert_str_eq!(
+            changes[0].old_version(),
+            "0.1.5",
+            "expected old 'env' version to be replaced by the existing entry from the changelog"
+        );
+        assert_str_eq!(
+            changes[1].old_version(),
+            "0.11.5",
+            "Expected old 'env_logger' version to be replaced by the existing entry from the changelog"
+        );
+        pretty_assertions::assert_eq!(
+            to_replace,
+            vec![
+                DependencyEntryLine {
+                    line_start: 127,
+                    line_len: 34
+                },
+                DependencyEntryLine {
+                    line_start: 161,
+                    line_len: 23
+                }
+            ]
+        );
     }
 }

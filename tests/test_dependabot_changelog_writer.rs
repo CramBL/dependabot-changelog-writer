@@ -21,7 +21,7 @@ fn get_diff(cmd_out: &Output) -> String {
 #[test]
 pub fn test_diff_issue51() -> TestResult {
     let changelog_path = "./test_data/changelogs/ISSUE_51.md";
-    let changes_pattern = "[dep]: [old] → [new] ([pr-link])";
+    let changes_pattern = "`[dep]`: [old] → [new] ([pr-link])";
     let commit_msg = "Updated changelog with updated dependencies";
     let commit_author = "github-actions[bot]";
     let commit_mail = "github-actions[bot]@users.noreply.github.com";
