@@ -1,9 +1,7 @@
 use std::error::Error;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::{env, io};
-
-use git2::Signature;
 
 use crate::dependabot_changes::entry_pattern::EntryPattern;
 
@@ -30,19 +28,10 @@ impl VersionHeader {
 }
 
 #[derive(Debug)]
-pub struct CommitSettings {
-    pub message: String,
-    pub author: String,
-    pub author_email: String,
-}
-
-#[derive(Debug)]
 pub struct Config {
     dry_run: bool,
-    push_changes: bool,
     changelog_path: PathBuf,
     entry_pattern: EntryPattern,
-    commit_settings: CommitSettings,
     version_header: VersionHeader,
     section_header: String,
 }
@@ -72,10 +61,6 @@ impl Config {
 
         let section_header = next_arg_trimmed(&mut args).ok_or("Missing section-header")?;
         log::debug!("section-header={section_header}");
-
-        let push_changes = next_arg_trimmed(&mut args).ok_or("Missing push-changes setting")?;
-        log::debug!("push-changes={push_changes}");
-        let push_changes = push_changes.eq_ignore_ascii_case("true");
 
         let dry_run = next_arg_trimmed(&mut args).is_some_and(|s| s == "dry-run");
         log::info!("dry-run={dry_run}");
@@ -108,14 +93,8 @@ impl Config {
 
         Ok(Self::new(
             dry_run,
-            push_changes,
             changelog_path,
             entry_pattern,
-            CommitSettings {
-                message: commit_message,
-                author: committer_name,
-                author_email: committer_email,
-            },
             VersionHeader::new(version_header),
             section_header,
         ))
@@ -123,33 +102,18 @@ impl Config {
 
     pub const fn new(
         dry_run: bool,
-        push_changes: bool,
         changelog_path: PathBuf,
         entry_pattern: EntryPattern,
-        commit_settings: CommitSettings,
         version_header: VersionHeader,
         section_header: String,
     ) -> Self {
         Self {
             dry_run,
-            push_changes,
             changelog_path,
             entry_pattern,
-            commit_settings,
             version_header,
             section_header,
         }
-    }
-
-    pub fn commit_signature(&self) -> std::result::Result<Signature, git2::Error> {
-        Signature::now(
-            &self.commit_settings.author,
-            &self.commit_settings.author_email,
-        )
-    }
-
-    pub fn commit_message(&self) -> &str {
-        &self.commit_settings.message
     }
 
     pub fn version_header(&self) -> &VersionHeader {
@@ -160,20 +124,12 @@ impl Config {
         &self.section_header
     }
 
-    pub fn changelog_path(&self) -> &Path {
-        &self.changelog_path
-    }
-
     pub fn read_changelog(&self) -> io::Result<String> {
         fs::read_to_string(&self.changelog_path)
     }
 
     pub fn write_changelog(&self, contents: String) -> io::Result<()> {
         fs::write(&self.changelog_path, contents)
-    }
-
-    pub fn push_changes(&self) -> bool {
-        self.push_changes
     }
 
     pub fn dry_run(&self) -> bool {

@@ -27,7 +27,6 @@ pub fn test_diff_issue51() -> TestResult {
     let commit_mail = "github-actions[bot]@users.noreply.github.com";
     let changelog_section = "unreleased";
     let changelog_header3 = "Dependencies";
-    let push_changes = "false";
     let dry_run = "dry-run";
 
     let mut cmd = Command::cargo_bin(BIN_NAME)?;
@@ -41,7 +40,6 @@ pub fn test_diff_issue51() -> TestResult {
             commit_mail,
             changelog_section,
             changelog_header3,
-            push_changes,
             dry_run,
         ]);
 

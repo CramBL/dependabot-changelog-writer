@@ -5,11 +5,12 @@ use changelog::add_changes_to_changelog_contents;
 use dependabot_changes::parse_body;
 use event_json::GithubEvent;
 
+use crate::github_env::{write_to_github_env, ENV_GH_DCH_CHANGES_MADE};
+
 mod changelog;
 mod config;
 mod dependabot_changes;
 mod event_json;
-mod git;
 
 #[cfg(test)]
 mod test_util;
@@ -37,25 +38,19 @@ fn run() -> Result<()> {
         );
 
         let orig_changelog = config.read_changelog()?;
-        util::print_diff(&orig_changelog, &changelog_contents);
+        let changes_made = orig_changelog != changelog_contents;
+        if changes_made {
+            util::print_diff(&orig_changelog, &changelog_contents);
+        } else {
+            log::info!("No changes made!");
+        }
+        write_to_github_env(ENV_GH_DCH_CHANGES_MADE, &(changes_made as u8).to_string())?;
+
         if config.dry_run() {
             log::debug!("Dry run: Skipping writing to changelog");
             log::debug!("Dry run: Skipping commit & push");
         } else {
             config.write_changelog(changelog_contents)?;
-            log::debug!("Opening repository in current directory");
-            let repo = git2::Repository::open(".")?;
-            // Fetch the remote branch first to ensure we have it locally
-            // this is necessary in actions triggered by an opened PR because
-            // they per default checkout branches detached from HEAD
-            log::debug!("Fetching remote branch: {}", event.branch_name());
-            let _remote = git::fetch_remote_branch(&repo, "origin", event.branch_name())?;
-
-            // if config.push_changes() {
-            //     git::add_commit_and_push(&config, remote, event.branch_ref())?;
-            // } else {
-            //     log::debug!("push-changes disabled: Skipping commit & push");
-            // }
         }
     } else {
         log::warn!("Pull request body is empty");

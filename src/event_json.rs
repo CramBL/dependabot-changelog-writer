@@ -1,21 +1,14 @@
-use std::io::Write as _;
 use std::{
     env::{self, current_dir},
     fs,
     path::{Path, PathBuf},
 };
 
-use crate::github_env::github_event_path;
-
-// The path on the runner to the file that sets variables from workflow commands.
-const ENV_VAR_GITHUB_EVENT_FILE: &str = "GITHUB_ENV";
-// The variable we export the branch name to, for later pushing a signed commit
-const ENV_GH_DCH_BRANCH_NAME: &str = "DCH_BRANCH_NAME";
+use crate::github_env::{github_event_path, ENV_GH_DCH_BRANCH_NAME};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub struct GithubEvent {
-    branch_ref: String,
     branch_name: String,
     pr_body: Option<String>,
     pr_link: String,
@@ -44,16 +37,7 @@ impl GithubEvent {
         let gh_event = Self::from_path(event_path)?;
 
         // Export BRANCH_NAME for use in later GitHub Actions steps
-        if let Ok(env_path) = env::var(ENV_VAR_GITHUB_EVENT_FILE) {
-            let mut env_file = fs::OpenOptions::new().append(true).open(env_path)?;
-            let contents = format!("{ENV_GH_DCH_BRANCH_NAME}={}\n", gh_event.branch_name);
-            log::info!("Exporting to GitHub environment: '{contents}'");
-            env_file.write_all(contents.as_bytes())?;
-        } else {
-            log::warn!(
-                "{ENV_VAR_GITHUB_EVENT_FILE} is not set, cannot locate GitHub environment file"
-            );
-        }
+        crate::github_env::write_to_github_env(ENV_GH_DCH_BRANCH_NAME, &gh_event.branch_name)?;
 
         Ok(gh_event)
     }
@@ -96,20 +80,11 @@ impl GithubEvent {
             .to_owned();
 
         Ok(Self {
-            branch_ref,
             branch_name,
             pr_body,
             pr_number,
             pr_link,
         })
-    }
-
-    pub fn branch_ref(&self) -> &str {
-        &self.branch_ref
-    }
-
-    pub fn branch_name(&self) -> &str {
-        &self.branch_name
     }
 
     pub fn pr_body(&self) -> Option<&str> {
@@ -137,7 +112,7 @@ impl GithubEvent {
 mod tests {
 
     use super::*;
-    use crate::test_util::*;
+    use crate::{github_env::ENV_VAR_GITHUB_EVENT_FILE, test_util::*};
     use pretty_assertions::assert_str_eq;
     use tempfile::NamedTempFile;
     use testresult::TestResult;
@@ -147,7 +122,7 @@ mod tests {
         let gh_event = GithubEvent::new(EXAMPLE_PR_OPENED_EVENT_JSON.to_owned())?;
 
         assert_eq!(gh_event.pr_body().unwrap().len(), 10814);
-        assert_str_eq!(gh_event.branch_name(), "bump-changelog-writer");
+        assert_str_eq!(gh_event.branch_name, "bump-changelog-writer");
         assert_eq!(gh_event.pull_request_number(), 9);
         assert_str_eq!(
             gh_event.pull_request_link(),
@@ -181,7 +156,7 @@ mod tests {
         let gh_event = GithubEvent::load_from_env()?;
 
         let env_contents = fs::read_to_string(env_file_path)?;
-        let expected = format!("{ENV_GH_DCH_BRANCH_NAME}={}\n", gh_event.branch_name());
+        let expected = format!("{ENV_GH_DCH_BRANCH_NAME}={}\n", gh_event.branch_name);
         assert_str_eq!(
             expected,
             env_contents,
