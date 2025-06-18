@@ -141,7 +141,7 @@ runs:
           echo "No changes made. Skipping commit."
           exit 0
         fi
-        SHA=$( git rev-parse ${DCH_BRANCH_NAME}:${FILE_TO_COMMIT} )
+        SHA=$( git rev-parse ${{ github.base_ref }}:${FILE_TO_COMMIT} )
         CONTENT=$( base64 -i ${FILE_TO_COMMIT} )
         gh api \
           --method PUT /repos/:owner/:repo/contents/${FILE_TO_COMMIT} \

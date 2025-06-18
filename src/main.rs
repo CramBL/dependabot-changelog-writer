@@ -12,7 +12,6 @@ mod config;
 mod dependabot_changes;
 mod event_json;
 
-mod git;
 #[cfg(test)]
 mod test_util;
 mod util;
@@ -51,12 +50,6 @@ fn run() -> Result<()> {
             log::debug!("Dry run: Skipping writing to changelog");
             log::debug!("Dry run: Skipping commit & push");
         } else {
-            log::debug!("Opening repository in current directory");
-            let repo = git2::Repository::open(".")?;
-            // Fetch the remote branch first to ensure we have it locally
-            // this is necessary in actions triggered by an opened PR because
-            // they per default checkout branches detached from HEAD
-            let _remote = git::fetch_remote_branch(&repo, "origin", event.branch_name())?;
             config.write_changelog(changelog_contents)?;
         }
     } else {
