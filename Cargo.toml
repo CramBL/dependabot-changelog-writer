@@ -6,9 +6,7 @@ edition = "2021"
 rust-version = "1.82"
 
 [dependencies]
-auth-git2 = "0.5.8"
 env_logger = "0.11.8"
-git2 = "0.20.2"
 log = "0.4.27"
 serde_json = "1.0.140"
 similar = "2.7.0"
