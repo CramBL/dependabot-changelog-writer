@@ -119,7 +119,7 @@ jobs:
 From a dependabot PR:
 
 1. **Write a changelog entry** that describes the update actions performed by dependabot on the given PR
-2. **Commit & push** the changes to the remote.
+2. **Commit (signed) & push** the changes to the remote.
 
 By default `dependabot-changelog-writer` generates entries under `unreleased` of the form:
 
@@ -132,7 +132,7 @@ By default `dependabot-changelog-writer` generates entries under `unreleased` of
 - `baz`: `9618fa7` -> `2ef0ff8`
 ```
 
-Then commits and pushes the changes to the current branch.
+Then generates a signed commit and pushes the changes to the current branch.
 
 `dependabot-changelog-writer` runs are _idempotent_, if you rerun it there will be no new changes to the changelog and no commit is created.
 
