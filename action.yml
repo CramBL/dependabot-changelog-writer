@@ -141,8 +141,7 @@ runs:
           echo "No changes made. Skipping commit."
           exit 0
         fi
-        git fetch origin "${{ github.base_ref }}"
-        SHA=$( git rev-parse origin/${{ github.base_ref }}:${FILE_TO_COMMIT} )
+        SHA=$( git hash-object ${FILE_TO_COMMIT} )
         CONTENT=$( base64 -i ${FILE_TO_COMMIT} )
         gh api \
           --method PUT /repos/:owner/:repo/contents/${FILE_TO_COMMIT} \
