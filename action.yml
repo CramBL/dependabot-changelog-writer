@@ -65,6 +65,8 @@ runs:
         echo "action_org=CramBL" >> $GITHUB_ENV
         echo "binary_name=dependabot-changelog-writer" >> $GITHUB_ENV
         echo "temp_dir=dependabot-changelog-writer-$(date +%s)" >> $GITHUB_ENV
+        SHA=$( git hash-object ${{ inputs.changelog }} )
+        echo "DCH_SHA=${SHA}" >> $GITHUB_ENV
 
     - name: Add binary extension
       shell: bash
@@ -141,7 +143,6 @@ runs:
           echo "No changes made. Skipping commit."
           exit 0
         fi
-        SHA=$( git hash-object ${FILE_TO_COMMIT} )
         CONTENT=$( base64 -i ${FILE_TO_COMMIT} )
         gh api \
           --method PUT /repos/:owner/:repo/contents/${FILE_TO_COMMIT} \
@@ -149,7 +150,7 @@ runs:
           --field content="${CONTENT}" \
           --field encoding="base64" \
           --field branch="${DCH_BRANCH_NAME}" \
-          --field sha="${SHA}"
+          --field sha="${{ env.DCH_SHA }}"
 
     - name: Cleanup
       shell: bash
