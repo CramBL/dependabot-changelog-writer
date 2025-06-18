@@ -4,11 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::github_env::github_event_path;
+use crate::github_env::{github_event_path, ENV_GH_DCH_BRANCH_NAME};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
 pub struct GithubEvent {
-    branch_ref: String,
     branch_name: String,
     pr_body: Option<String>,
     pr_link: String,
@@ -34,7 +34,12 @@ impl GithubEvent {
             return Err(format!("No github event file at: {abs_path}").into());
         }
 
-        Self::from_path(event_path)
+        let gh_event = Self::from_path(event_path)?;
+
+        // Export BRANCH_NAME for use in later GitHub Actions steps
+        crate::github_env::write_to_github_env(ENV_GH_DCH_BRANCH_NAME, &gh_event.branch_name)?;
+
+        Ok(gh_event)
     }
 
     pub fn from_path(event_json_path: PathBuf) -> Result<Self> {
@@ -75,20 +80,11 @@ impl GithubEvent {
             .to_owned();
 
         Ok(Self {
-            branch_ref,
             branch_name,
             pr_body,
             pr_number,
             pr_link,
         })
-    }
-
-    pub fn branch_ref(&self) -> &str {
-        &self.branch_ref
-    }
-
-    pub fn branch_name(&self) -> &str {
-        &self.branch_name
     }
 
     pub fn pr_body(&self) -> Option<&str> {
@@ -114,9 +110,11 @@ impl GithubEvent {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use crate::test_util::*;
+    use crate::{github_env::ENV_VAR_GITHUB_EVENT_FILE, test_util::*};
     use pretty_assertions::assert_str_eq;
+    use tempfile::NamedTempFile;
     use testresult::TestResult;
 
     #[test]
@@ -124,7 +122,7 @@ mod tests {
         let gh_event = GithubEvent::new(EXAMPLE_PR_OPENED_EVENT_JSON.to_owned())?;
 
         assert_eq!(gh_event.pr_body().unwrap().len(), 10814);
-        assert_str_eq!(gh_event.branch_name(), "bump-changelog-writer");
+        assert_str_eq!(gh_event.branch_name, "bump-changelog-writer");
         assert_eq!(gh_event.pull_request_number(), 9);
         assert_str_eq!(
             gh_event.pull_request_link(),
@@ -133,6 +131,36 @@ mod tests {
         assert_str_eq!(
             &gh_event.markdown_pull_request_link(),
             "[#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1)"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_branch_name_exported_to_github_env() -> TestResult {
+        // Create a temporary file to simulate the GITHUB_ENV file
+        let temp_env_file = NamedTempFile::new()?;
+        let env_file_path = temp_env_file.path().to_path_buf();
+
+        // Set the GITHUB_ENV environment variable to point to the temp file
+        env::set_var(ENV_VAR_GITHUB_EVENT_FILE, &env_file_path);
+
+        // Set up fake event JSON path
+        let fake_event_file = NamedTempFile::new()?;
+        fs::write(
+            fake_event_file.path(),
+            crate::test_util::EXAMPLE_PR_OPENED_EVENT_JSON,
+        )?;
+        env::set_var("USE_FAKE_EVENT_JSON", fake_event_file.path());
+
+        let gh_event = GithubEvent::load_from_env()?;
+
+        let env_contents = fs::read_to_string(env_file_path)?;
+        let expected = format!("{ENV_GH_DCH_BRANCH_NAME}={}\n", gh_event.branch_name);
+        assert_str_eq!(
+            expected,
+            env_contents,
+            "Expected env file to contain '{expected}', got:\n{env_contents}"
         );
 
         Ok(())

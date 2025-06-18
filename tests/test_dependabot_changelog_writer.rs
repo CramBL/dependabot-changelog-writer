@@ -23,11 +23,8 @@ pub fn test_diff_issue51() -> TestResult {
     let changelog_path = "./test_data/changelogs/ISSUE_51.md";
     let changes_pattern = "`[dep]`: [old] → [new] ([pr-link])";
     let commit_msg = "Updated changelog with updated dependencies";
-    let commit_author = "github-actions[bot]";
-    let commit_mail = "github-actions[bot]@users.noreply.github.com";
     let changelog_section = "unreleased";
     let changelog_header3 = "Dependencies";
-    let push_changes = "false";
     let dry_run = "dry-run";
 
     let mut cmd = Command::cargo_bin(BIN_NAME)?;
@@ -37,11 +34,8 @@ pub fn test_diff_issue51() -> TestResult {
             changelog_path,
             changes_pattern,
             commit_msg,
-            commit_author,
-            commit_mail,
             changelog_section,
             changelog_header3,
-            push_changes,
             dry_run,
         ]);
 
@@ -79,8 +73,6 @@ pub fn test_diff_ill_advised_section_header() -> TestResult {
     let changelog_path = "./test_data/changelogs/ISSUE_51.md";
     let changes_pattern = "[dep]: [old] → [new] ([pr-link])";
     let commit_msg = "Updated changelog with updated dependencies";
-    let commit_author = "github-actions[bot]";
-    let commit_mail = "github-actions[bot]@users.noreply.github.com";
     let changelog_section = "unreleased";
     let changelog_header3 = "### Dependencies";
     let push_changes = "false";
@@ -92,8 +84,6 @@ pub fn test_diff_ill_advised_section_header() -> TestResult {
             changelog_path,
             changes_pattern,
             commit_msg,
-            commit_author,
-            commit_mail,
             changelog_section,
             changelog_header3,
             push_changes,
