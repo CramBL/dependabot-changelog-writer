@@ -87,6 +87,10 @@ impl GithubEvent {
         })
     }
 
+    pub fn branch_name(&self) -> &str {
+        &self.branch_name
+    }
+
     pub fn pr_body(&self) -> Option<&str> {
         self.pr_body.as_deref()
     }
