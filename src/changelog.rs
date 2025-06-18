@@ -79,7 +79,7 @@ pub fn add_changes_to_changelog_contents(
         }
         log::info!(
             "Inserting changes immediately after the following content: {}",
-            &changelog_content[..=changes_insert_pos]
+            &changelog_content[..changes_insert_pos]
         );
         changelog_content.insert_str(changes_insert_pos, &changes_md);
     } else {
