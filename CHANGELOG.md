@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dependabot-changelog-writer` now creates signed commits using the author and email from the input `push-token` when run in CI
 - The name of updated dependencies is now sanitized for backticks (\`) enabling more customization for changelog patterns. **NOTE:** The default pattern produces the same changelog entries as they always did, but if you rely on a custom changelog pattern, you will have to change '[dep]' to '\`[dep]\`' to maintain the same pattern
 - Make `libgit2` obsolete, cutting binary size in half
+- Optimize more, cut binary size in half again
 
 ## [1.1.4]
 
