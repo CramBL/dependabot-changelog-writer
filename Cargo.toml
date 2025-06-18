@@ -3,7 +3,7 @@ name = "dependabot-changelog-writer"
 description = "Generate a changelog entry from a dependabot PR"
 version = "1.1.4"
 edition = "2021"
-rust-version = "1.81"
+rust-version = "1.82"
 
 [dependencies]
 auth-git2 = "0.5.8"
