@@ -72,3 +72,17 @@ jobs:
         with:
           artifacts: "Linux/Linux.tgz,macOS/macOS.tgz,Windows/Windows.tgz"
           tag: v${{ github.event.inputs.version }}
+
+  test-success:
+    needs: create-release
+    env:
+      RUST_LOG: DEBUG
+      RUST_BACKTRACE: 1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          push-changes: false
+        env:
+          USE_FAKE_EVENT_JSON: test_data/event_json/minimal_pr_opened.json
