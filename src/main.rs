@@ -5,11 +5,12 @@ use changelog::add_changes_to_changelog_contents;
 use dependabot_changes::parse_body;
 use event_json::GithubEvent;
 
+use crate::github_env::{write_to_github_env, ENV_GH_DCH_CHANGES_MADE};
+
 mod changelog;
 mod config;
 mod dependabot_changes;
 mod event_json;
-mod git;
 
 #[cfg(test)]
 mod test_util;
@@ -37,22 +38,19 @@ fn run() -> Result<()> {
         );
 
         let orig_changelog = config.read_changelog()?;
-        util::print_diff(&orig_changelog, &changelog_contents);
+        let changes_made = orig_changelog != changelog_contents;
+        if changes_made {
+            util::print_diff(&orig_changelog, &changelog_contents);
+        } else {
+            log::info!("No changes made!");
+        }
+        write_to_github_env(ENV_GH_DCH_CHANGES_MADE, &(changes_made as u8).to_string())?;
+
         if config.dry_run() {
             log::debug!("Dry run: Skipping writing to changelog");
             log::debug!("Dry run: Skipping commit & push");
         } else {
             config.write_changelog(changelog_contents)?;
-            if config.push_changes() {
-                git::add_commit_and_push(
-                    &config,
-                    "origin",
-                    event.branch_ref(),
-                    event.branch_name(),
-                )?;
-            } else {
-                log::debug!("push-changes disabled: Skipping commit & push");
-            }
         }
     } else {
         log::warn!("Pull request body is empty");

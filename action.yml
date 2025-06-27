@@ -22,22 +22,14 @@ inputs:
 
       Examples:
       - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
-      - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
+      - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
       - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
     required: true
-    default: "[dep]: [old] → [new] ([pr-link])"
+    default: "`[dep]`: [old] → [new] ([pr-link])"
   commit-message:
     description: "The commit message for the changelog entry"
     required: true
     default: "Updated changelog with updated dependencies"
-  committer-name:
-    description: "The name of the custom committer you want to use"
-    required: true
-    default: "github-actions[bot]"
-  committer-email:
-    description: "The email of the custom committer you want to use"
-    required: true
-    default: "github-actions[bot]@users.noreply.github.com"
   version:
     description: >
       The version/H2 header to find in the CHANGELOG to add dependabot entries to
@@ -73,6 +65,8 @@ runs:
         echo "action_org=CramBL" >> $GITHUB_ENV
         echo "binary_name=dependabot-changelog-writer" >> $GITHUB_ENV
         echo "temp_dir=dependabot-changelog-writer-$(date +%s)" >> $GITHUB_ENV
+        SHA=$( git hash-object ${{ inputs.changelog }} )
+        echo "DCH_SHA=${SHA}" >> $GITHUB_ENV
 
     - name: Add binary extension
       shell: bash
@@ -131,14 +125,32 @@ runs:
         '${{ inputs.changelog }}' \
         '${{ inputs.changelog-entry-pattern }}' \
         '${{ inputs.commit-message }}' \
-        '${{ inputs.committer-name }}' \
-        '${{ inputs.committer-email }}' \
         '${{ inputs.version }}' \
         '${{ inputs.section-header }}' \
-        '${{ inputs.push-changes }}'
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}
+
+    - name: Commit
+      if: ${{ inputs.push-changes == 'true' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.push-token }}
+        FILE_TO_COMMIT: ${{ inputs.changelog }}
+        COMMIT_MSG: "${{ inputs.commit-message }}"
+      run: |
+        if [[ "${DCH_CHANGES_MADE}" != "1" ]]; then
+          echo "No changes made. Skipping commit."
+          exit 0
+        fi
+        CONTENT=$( base64 -i ${FILE_TO_COMMIT} )
+        gh api \
+          --method PUT /repos/:owner/:repo/contents/${FILE_TO_COMMIT} \
+          --field message="${COMMIT_MSG}" \
+          --field content="${CONTENT}" \
+          --field encoding="base64" \
+          --field branch="${DCH_BRANCH_NAME}" \
+          --field sha="${{ env.DCH_SHA }}"
 
     - name: Cleanup
       shell: bash

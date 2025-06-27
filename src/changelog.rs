@@ -79,7 +79,7 @@ pub fn add_changes_to_changelog_contents(
         }
         log::info!(
             "Inserting changes immediately after the following content: {}",
-            &changelog_content[..=changes_insert_pos]
+            &changelog_content[..changes_insert_pos]
         );
         changelog_content.insert_str(changes_insert_pos, &changes_md);
     } else {
@@ -360,9 +360,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     fn test_insert_changes_when_changes_section_exists_replaces_all_entries() {
         let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
         let changes = vec![
-            DependabotChange::new("`chrono`", "0.4.39", "0.4.41"),
-            DependabotChange::new("`env_logger`", "0.11.5", "0.12.1"),
-            DependabotChange::new("`semver`", "1.0.24", "1.0.25"),
+            DependabotChange::new("chrono", "0.4.39", "0.4.41"),
+            DependabotChange::new("env_logger", "0.11.5", "0.12.1"),
+            DependabotChange::new("semver", "1.0.24", "1.0.25"),
         ];
         let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
@@ -571,7 +571,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &version_header,
             section_header,
         );
-        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "mismatch"
+        );
 
         add_changes_to_changelog_contents(
             changes.clone(),
@@ -581,6 +585,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &version_header,
             section_header,
         );
-        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent"
+        );
     }
 }

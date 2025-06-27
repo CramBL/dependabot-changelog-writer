@@ -80,22 +80,14 @@ jobs:
         #
         # Examples:
         # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
-        # - Pattern: 'Bump [dep] from [old] to [new]' produces 'Bump npm from 1.0 to 1.2'
+        # - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
         # - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
-        # default: '[dep]: [old] → [new] ([pr-link])'
+        # default: '`[dep]`: [old] → [new] ([pr-link])'
         changelog-entry-pattern: ''
 
         # The commit message for the changelog entry
         # default: 'Updated changelog with updated dependencies'
         commit-message: ''
-
-        # The name of the custom committer you want to use
-        # default: 'github-actions[bot]'
-        committer-name: ''
-
-        # The email of the custom committer you want to use
-        # default: 'github-actions[bot]@users.noreply.github.com'
-        committer-email: ''
 
         # The version/H2 header to find in the CHANGELOG to add dependabot entries to
         # matches whether or not the version is in brackets e.g. [0.1.0] and 0.1.0 are
@@ -127,7 +119,7 @@ jobs:
 From a dependabot PR:
 
 1. **Write a changelog entry** that describes the update actions performed by dependabot on the given PR
-2. **Commit & push** the changes to the remote.
+2. **Commit (signed) & push** the changes to the remote.
 
 By default `dependabot-changelog-writer` generates entries under `unreleased` of the form:
 
@@ -140,7 +132,7 @@ By default `dependabot-changelog-writer` generates entries under `unreleased` of
 - `baz`: `9618fa7` -> `2ef0ff8`
 ```
 
-Then commits and pushes the changes to the current branch.
+Then generates a signed commit and pushes the changes to the current branch.
 
 `dependabot-changelog-writer` runs are _idempotent_, if you rerun it there will be no new changes to the changelog and no commit is created.
 

@@ -131,11 +131,9 @@ jobs:
             "CHANGELOG.md" \
             'Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_' \
             "Some commit message" \
-            "github-actions[bot]" \
-            "github-actions[bot]@users.noreply.github.com" \
             "Unreleased" \
             "section header 3" \
-            "false"
+            "true"
 
   build:
     strategy:
@@ -190,11 +188,9 @@ jobs:
         run: ./${{ env.binary_name }} 'CHANGELOG.md' \
                                     '📝 Update [dep] from [old] to🚀 [new]🍄'
                                     'commit msg' \
-                                    'github-actions[bot]' \
-                                    'github-actions[bot]@users.noreply.github.com' \
                                     'Unreleased' \
                                     'section header 3' \
-                                    'false'
+                                    'true'
 
   msrv:
       # check that we can build using the minimal rust version that is specified by this crate
@@ -203,7 +199,7 @@ jobs:
       # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
       strategy:
         matrix:
-          msrv: ["1.81.0"]
+          msrv: ["1.82.0"]
       name: ubuntu / ${{ matrix.msrv }}
       steps:
         - uses: actions/checkout@v4

@@ -56,7 +56,7 @@ impl<'s> DependabotChange<'s> {
         let (old_version, new_version) = rest.split_once("to")?;
 
         Some(DependabotChange::new(
-            name.trim(),
+            name.trim().trim_start_matches('`').trim_end_matches('`'),
             old_version.trim(),
             new_version.trim().trim_end_matches('.'),
         ))
@@ -137,5 +137,17 @@ mod tests {
         assert_eq!(change.name, "package");
         assert_eq!(change.old_version(), "1.0.0");
         assert_eq!(change.new_version, "2.0.0");
+    }
+
+    #[test]
+    fn test_dependabot_change_from_str_sanitize_backticks() {
+        let teststr = "Bumps `ubi9/ubi` from 9.4-1214.1726694543 to 9.4-1214.1729773476.";
+        let dep_change = DependabotChange::from_str(&teststr[5..]);
+
+        assert!(dep_change.is_some());
+        assert_eq!(
+            dep_change.unwrap(),
+            DependabotChange::new("ubi9/ubi", "9.4-1214.1726694543", "9.4-1214.1729773476")
+        );
     }
 }
