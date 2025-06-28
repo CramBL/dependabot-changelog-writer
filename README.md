@@ -85,6 +85,16 @@ jobs:
         # default: '`[dep]`: [old] → [new] ([pr-link])'
         changelog-entry-pattern: ''
 
+        # Strategy for handling duplicate dependency entries in changelog's unreleased section.
+        # When a Dependabot PR updates dependency FOO from B → C, but an unreleased entry
+        # already exists for FOO (A → B):
+        #
+        # 'overwrite': Replace existing entry with combined update (A → C)
+        # 'append': Keep existing entry and add new entry (B → C)
+        #
+        # default: 'overwrite'
+        duplicate-entry-strategy: ''
+
         # The commit message for the changelog entry
         # default: 'Updated changelog with updated dependencies'
         commit-message: ''
@@ -140,7 +150,7 @@ Then generates a signed commit and pushes the changes to the current branch.
 
 - [x] Dependabot bumped a dependency from one **Git SHA** to another
 - [x] A submodule was updated to another **short SHA**
-- [x] The `Dependencies` section already contains an entry like `bump X from A to B` - Handled by replacing that entry with `bump X from A to C`
+- [x] The `Dependencies` section already contains an entry like `bump X from A to B` - Handled with the `duplicate-entry-strategy` where the **overwrite** strategy will replace the entry with `bump X from A to C`, or with the **append** strategy where it is ignored and a new `bump X from B to C` entry is created.
 - [x] Branch is checked out detached from HEAD (e.g. workflow triggered by opened pull request) - Locates HEAD from remote before committing
 
 ## Alternatives

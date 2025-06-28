@@ -28,13 +28,14 @@ inputs:
     default: "`[dep]`: [old] → [new] ([pr-link])"
   duplicate-entry-strategy:
     description: >
-      What should the behaviour be if the current dependabot PR bumps dependency FOO from version B to C but
-      the changelog has an unreleased section with an entry where FOO is bumped from version A to B?
+      Strategy for handling duplicate dependency entries in changelog's unreleased section.
+      When a Dependabot PR updates dependency FOO from B → C, but an unreleased entry
+      already exists for FOO (A → B):
 
-      The 'overwrite' strategy replaces the existing entry with a new entry that describes FOO bumped from A to C.
-      The 'append' strategy ignores the existing entry and a new entry is made that describes FOO bumped from B to C.
+      'overwrite': Replace existing entry with combined update (A → C)
+      'append': Keep existing entry and add new entry (B → C)
     required: true
-    default: "append"
+    default: "overwrite"
   commit-message:
     description: "The commit message for the changelog entry"
     required: true
