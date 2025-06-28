@@ -85,7 +85,9 @@ impl Config {
         log::info!("dry-run={dry_run}");
 
         if section_header.starts_with("###") {
-            log::error!("Invalid section header: Starts with '###' when an h3 header already implies a prefix of '###'");
+            log::error!(
+                "Invalid section header: Starts with '###' when an h3 header already implies a prefix of '###'"
+            );
             return Err(format!("Invalid section header '{section_header}', expected a section header such as 'Changes'.\n\
             NOTE: section header is assumed to be an h3 header, meaning it implies a prefix of '###' such as '### Changes'\n\
             HINT: Try removing the '###' prefix").into());
