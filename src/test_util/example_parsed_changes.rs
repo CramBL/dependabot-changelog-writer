@@ -31,3 +31,18 @@ pub const CHANGES_ISSUE_51: &[DependabotChange<'_>] = &[
     DependabotChange::new("mdns-sd", "0.13.1", "0.13.2"),
     DependabotChange::new("strum", "0.26.3", "0.27.0"),
 ];
+
+/// | Package | From | To |
+/// | --- | --- | --- |
+/// | [github/codeql-action](https://github.com/github/codeql-action) | `3.28.19` | `3.29.0` |
+/// | [docker/setup-buildx-action](https://github.com/docker/setup-buildx-action) | `3.10.0` | `3.11.1` |
+/// | [actions/attest-build-provenance](https://github.com/actions/attest-build-provenance) | `2.3.0` | `2.4.0` |
+/// | [actions/attest-sbom](https://github.com/actions/attest-sbom) | `2.2.0` | `2.4.0` |
+/// | [sigstore/cosign-installer](https://github.com/sigstore/cosign-installer) | `3.8.2` | `3.9.0` |
+pub const CHANGES_ISSUE_90: &[DependabotChange<'_>] = &[
+    DependabotChange::new("github/codeql-action", "3.28.19", "3.29.0"),
+    DependabotChange::new("docker/setup-buildx-action", "3.10.0", "3.11.1"),
+    DependabotChange::new("actions/attest-build-provenance", "2.3.0", "2.4.0"),
+    DependabotChange::new("actions/attest-sbom", "2.2.0", "2.4.0"),
+    DependabotChange::new("sigstore/cosign-installer", "3.8.2", "3.9.0"),
+];

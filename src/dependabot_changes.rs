@@ -77,7 +77,7 @@ pub fn format_changes(
 mod tests {
     use super::*;
     use crate::test_util::*;
-    use pretty_assertions::assert_str_eq;
+    use pretty_assertions::{assert_eq, assert_str_eq};
 
     #[test]
     fn test_parse_body() {
@@ -239,5 +239,11 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
     fn test_parse_body_issue51() {
         let changes = parse_changes(DEPENDABOT_BODY_ISSUE_51);
         assert_eq!(changes, CHANGES_ISSUE_51);
+    }
+
+    #[test]
+    fn test_parse_body_issue90() {
+        let changes = parse_changes(DEPENDABOT_BODY_ISSUE_90);
+        assert_eq!(changes, CHANGES_ISSUE_90);
     }
 }
