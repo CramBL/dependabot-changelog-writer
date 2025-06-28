@@ -33,6 +33,7 @@ fn run() -> Result<()> {
             &mut changelog_contents,
             &event.markdown_pull_request_link(),
             config.entry_pattern(),
+            config.duplicate_entry_strategy(),
             config.version_header(),
             config.section_header(),
         );

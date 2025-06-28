@@ -27,11 +27,30 @@ impl VersionHeader {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum DuplicateEntryStrategy {
+    Append,
+    Overwrite,
+}
+
+impl TryFrom<&str> for DuplicateEntryStrategy {
+    type Error = Box<dyn Error>;
+
+    fn try_from(s: &str) -> Result<Self> {
+        match s {
+            "overwrite" => Ok(Self::Overwrite),
+            "append" => Ok(Self::Append),
+            _ => Err(format!("Invalid value for 'duplicate-entry-pattern': {s}\nHINT: Valid values are: 'append' or 'overwrite'").into()),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     dry_run: bool,
     changelog_path: PathBuf,
     entry_pattern: EntryPattern,
+    duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: VersionHeader,
     section_header: String,
 }
@@ -46,6 +65,12 @@ impl Config {
         let changelog_entry_pattern =
             next_arg_trimmed(&mut args).ok_or("Missing changelog-entry-pattern")?;
         log::debug!("changelog-entry-pattern={changelog_entry_pattern}");
+
+        let duplicate_entry_strategy =
+            next_arg_trimmed(&mut args).ok_or("Missing duplicate-entry-strategy")?;
+        log::debug!("duplicate-entry-strategy={duplicate_entry_strategy}");
+        let duplicate_entry_strategy =
+            DuplicateEntryStrategy::try_from(duplicate_entry_strategy.as_str())?;
 
         let commit_message = next_arg_trimmed(&mut args).ok_or("Missing commit-message")?;
         log::debug!("commit-message={commit_message}");
@@ -89,6 +114,7 @@ impl Config {
             dry_run,
             changelog_path,
             entry_pattern,
+            duplicate_entry_strategy,
             VersionHeader::new(version_header),
             section_header,
         ))
@@ -98,6 +124,7 @@ impl Config {
         dry_run: bool,
         changelog_path: PathBuf,
         entry_pattern: EntryPattern,
+        duplicate_entry_strategy: DuplicateEntryStrategy,
         version_header: VersionHeader,
         section_header: String,
     ) -> Self {
@@ -105,6 +132,7 @@ impl Config {
             dry_run,
             changelog_path,
             entry_pattern,
+            duplicate_entry_strategy,
             version_header,
             section_header,
         }
@@ -132,5 +160,9 @@ impl Config {
 
     pub fn entry_pattern(&self) -> &EntryPattern {
         &self.entry_pattern
+    }
+
+    pub fn duplicate_entry_strategy(&self) -> DuplicateEntryStrategy {
+        self.duplicate_entry_strategy
     }
 }

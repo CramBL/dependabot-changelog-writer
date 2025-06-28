@@ -133,6 +133,7 @@ runs:
       run: ${{ env.temp_dir }}/${{ runner.os }}/${{ env.binary_name }} \
         '${{ inputs.changelog }}' \
         '${{ inputs.changelog-entry-pattern }}' \
+        '${{ inputs.duplicate-entry-strategy }}' \
         '${{ inputs.commit-message }}' \
         '${{ inputs.version }}' \
         '${{ inputs.section-header }}' \

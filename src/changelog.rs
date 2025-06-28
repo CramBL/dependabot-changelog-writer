@@ -1,7 +1,7 @@
 mod parse;
 
 use crate::{
-    config::VersionHeader,
+    config::{DuplicateEntryStrategy, VersionHeader},
     dependabot_changes::{
         dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes,
     },
@@ -12,6 +12,7 @@ pub fn add_changes_to_changelog_contents(
     changelog_content: &mut String,
     markdown_pull_request_link: &str,
     entry_pattern: &EntryPattern,
+    duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: &VersionHeader,
     section_header: &str,
 ) {
@@ -157,6 +158,7 @@ mod tests {
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -168,6 +170,7 @@ mod tests {
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -222,6 +225,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -233,6 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -277,6 +282,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -287,6 +293,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -337,6 +344,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -347,6 +355,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -398,6 +407,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -408,6 +418,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -447,6 +458,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -457,6 +469,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -570,6 +583,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -584,6 +598,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -644,6 +659,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
@@ -660,6 +676,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
         );
