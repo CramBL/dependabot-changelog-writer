@@ -5,7 +5,7 @@ use changelog::add_changes_to_changelog_contents;
 use dependabot_changes::parse_body;
 use event_json::GithubEvent;
 
-use crate::github_env::{write_to_github_env, ENV_GH_DCH_CHANGES_MADE};
+use crate::github_env::{ENV_GH_DCH_CHANGES_MADE, write_to_github_env};
 
 mod changelog;
 mod config;
@@ -33,6 +33,7 @@ fn run() -> Result<()> {
             &mut changelog_contents,
             &event.markdown_pull_request_link(),
             config.entry_pattern(),
+            config.duplicate_entry_strategy(),
             config.version_header(),
             config.section_header(),
         );

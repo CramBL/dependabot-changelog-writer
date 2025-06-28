@@ -293,8 +293,7 @@ mod tests {
 
     #[test]
     fn test_find_old_version_actions_toolkit_semver() {
-        let test_str =
-            " 0.40.0 to 0.42.0</li> ([#39](https://github.com/bumps_org/updates-versioner/pull/39))";
+        let test_str = " 0.40.0 to 0.42.0</li> ([#39](https://github.com/bumps_org/updates-versioner/pull/39))";
         let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "0.40.0");
     }
@@ -328,8 +327,7 @@ mod tests {
 
     #[test]
     fn test_find_old_version_semver_in_code_blocks() {
-        let test_str =
-            "- Update _github/codeql-action_ from `3.28.17` to [`3.28.18`](https://github.com/github/codeql-action/releases/tag/v3.28.18). ([#17](https://github.com/foo-bar/build-workflows/pull/17)) _@dependabot_";
+        let test_str = "- Update _github/codeql-action_ from `3.28.17` to [`3.28.18`](https://github.com/github/codeql-action/releases/tag/v3.28.18). ([#17](https://github.com/foo-bar/build-workflows/pull/17)) _@dependabot_";
         let old_ver = find_old_ver_from_line(test_str).unwrap();
         assert_str_eq!(&old_ver, "3.28.17");
     }

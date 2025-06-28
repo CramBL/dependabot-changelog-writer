@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Fix some potential workflow security issues
+## [1.3.0]
+
+### Added
+
+- The new `duplicate-entry-strategy` lets users configure the behaviour when an unreleased section already contains an entry where the same dependency is updated, see the [README](./README.md) for more on that.
+
+### Fixed
+
+- Fix some potential workflow security issues, this is part of an effort of fixing issues identified through static analysis of GitHub Actions workflow files.
+- Fix erroneous changelog entry in 'overwrite' mode if multiple identical entries were present in the unreleased section AND they were listed with semantic versions in code blocks.
 
 ## [1.2.0]
 

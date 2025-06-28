@@ -22,6 +22,7 @@ fn get_diff(cmd_out: &Output) -> String {
 pub fn test_diff_issue51() -> TestResult {
     let changelog_path = "./test_data/changelogs/ISSUE_51.md";
     let changes_pattern = "`[dep]`: [old] → [new] ([pr-link])";
+    let duplicate_entry_strategy = "overwrite";
     let commit_msg = "Updated changelog with updated dependencies";
     let changelog_section = "unreleased";
     let changelog_header3 = "Dependencies";
@@ -33,6 +34,7 @@ pub fn test_diff_issue51() -> TestResult {
         .args([
             changelog_path,
             changes_pattern,
+            duplicate_entry_strategy,
             commit_msg,
             changelog_section,
             changelog_header3,
@@ -72,6 +74,7 @@ pub fn test_diff_issue51() -> TestResult {
 pub fn test_diff_ill_advised_section_header() -> TestResult {
     let changelog_path = "./test_data/changelogs/ISSUE_51.md";
     let changes_pattern = "[dep]: [old] → [new] ([pr-link])";
+    let duplicate_entry_strategy = "overwrite";
     let commit_msg = "Updated changelog with updated dependencies";
     let changelog_section = "unreleased";
     let changelog_header3 = "### Dependencies";
@@ -83,6 +86,7 @@ pub fn test_diff_ill_advised_section_header() -> TestResult {
         .args([
             changelog_path,
             changes_pattern,
+            duplicate_entry_strategy,
             commit_msg,
             changelog_section,
             changelog_header3,

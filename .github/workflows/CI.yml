@@ -130,6 +130,7 @@ jobs:
         run: cargo run -- \
             "CHANGELOG.md" \
             'Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_' \
+            'append'
             "Some commit message" \
             "Unreleased" \
             "section header 3" \
@@ -187,6 +188,7 @@ jobs:
           PUSH_TOKEN: ${{ github.token }}
         run: ./${{ env.binary_name }} 'CHANGELOG.md' \
                                     '📝 Update [dep] from [old] to🚀 [new]🍄'
+                                    'overwrite'
                                     'commit msg' \
                                     'Unreleased' \
                                     'section header 3' \
@@ -199,7 +201,7 @@ jobs:
       # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
       strategy:
         matrix:
-          msrv: ["1.82.0"]
+          msrv: ["1.85.0"]
       name: ubuntu / ${{ matrix.msrv }}
       steps:
         - uses: actions/checkout@v4
