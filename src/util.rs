@@ -10,7 +10,7 @@ pub fn print_diff(old: &str, new: &str) {
             ChangeTag::Insert => "+",
             ChangeTag::Equal => " ",
         };
-        print!("{}{}", sign, change);
+        print!("{sign}{change}");
     }
     println!("@@@@@ END OF DIFF @@@@@");
 }

@@ -6,6 +6,8 @@ macro_rules! changelog {
 
 /// https://github.com/CramBL/dependabot-changelog-writer/issues/51
 pub const ISSUE_51_CHANGELOG: &str = changelog!("ISSUE_51.md");
+/// https://github.com/CramBL/dependabot-changelog-writer/issues/90
+pub const ISSUE_90_CHANGELOG: &str = changelog!("ISSUE_90.md");
 
 /// Simple changelog with only an 'Unreleased' section
 pub const EXAMPLE_EMPTY_CHANGELOG_CONTENTS: &str = r##"# Changelog
