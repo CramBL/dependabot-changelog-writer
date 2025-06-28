@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::github_env::{github_event_path, ENV_GH_DCH_BRANCH_NAME};
+use crate::github_env::{ENV_GH_DCH_BRANCH_NAME, github_event_path};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
@@ -143,7 +143,8 @@ mod tests {
         let env_file_path = temp_env_file.path().to_path_buf();
 
         // Set the GITHUB_ENV environment variable to point to the temp file
-        env::set_var(ENV_VAR_GITHUB_EVENT_FILE, &env_file_path);
+        // SAFETY: this is only done in this single test, no where else
+        unsafe { env::set_var(ENV_VAR_GITHUB_EVENT_FILE, &env_file_path) };
 
         // Set up fake event JSON path
         let fake_event_file = NamedTempFile::new()?;
@@ -151,7 +152,8 @@ mod tests {
             fake_event_file.path(),
             crate::test_util::EXAMPLE_PR_OPENED_EVENT_JSON,
         )?;
-        env::set_var("USE_FAKE_EVENT_JSON", fake_event_file.path());
+        // SAFETY: this is only done in this single test, no where else
+        unsafe { env::set_var("USE_FAKE_EVENT_JSON", fake_event_file.path()) };
 
         let gh_event = GithubEvent::load_from_env()?;
 

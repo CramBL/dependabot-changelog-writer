@@ -2,8 +2,8 @@
 name = "dependabot-changelog-writer"
 description = "Generate a changelog entry from a dependabot PR"
 version = "1.2.0"
-edition = "2021"
-rust-version = "1.82"
+edition = "2024"
+rust-version = "1.85"
 
 [dependencies]
 env_logger = { version = "0.11.8", default-features = false }

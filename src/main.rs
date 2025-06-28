@@ -5,7 +5,7 @@ use changelog::add_changes_to_changelog_contents;
 use dependabot_changes::parse_body;
 use event_json::GithubEvent;
 
-use crate::github_env::{write_to_github_env, ENV_GH_DCH_CHANGES_MADE};
+use crate::github_env::{ENV_GH_DCH_CHANGES_MADE, write_to_github_env};
 
 mod changelog;
 mod config;
