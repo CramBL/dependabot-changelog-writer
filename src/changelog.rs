@@ -4,6 +4,7 @@ use crate::{
     config::{DuplicateEntryStrategy, VersionHeader},
     dependabot_changes::{
         dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes,
+        get_formatted_changes,
     },
 };
 
@@ -40,33 +41,40 @@ pub fn add_changes_to_changelog_contents(
     {
         let abs_existing_h3_start = h2_insert_pos + existing_h3_rel_start;
         let abs_existing_h3_insert_pos = h2_insert_pos + existing_h3_rel_insert_pos;
-        log::debug!("abs_existing_h3_start={abs_existing_h3_start}, abs_existing_h3_insert_pos={abs_existing_h3_insert_pos}");
-        let existing_deps = parse::find_existing_dependency_lines_to_replace(
-            &changelog_content[abs_existing_h3_start..abs_existing_h3_insert_pos],
-            &mut changes,
+        log::debug!(
+            "abs_existing_h3_start={abs_existing_h3_start}, abs_existing_h3_insert_pos={abs_existing_h3_insert_pos}"
         );
-
         let mut string_offset = 0;
-        // Iterate in reverse to go towards to the start of the changelog string
-        // that way the next content we might have to update doesn't change position
-        // and we don't have to keep track of an intermediate offset
-        for line in existing_deps.iter().rev() {
-            let range_to_remove = line.range_offset(abs_existing_h3_start);
-            log::debug!(
-                "Removing previous dependency entry: {}",
-                &changelog_content[range_to_remove.clone()]
-            );
-            debug_assert_eq!(
-                changelog_content[range_to_remove.clone()]
-                    .matches('\n')
-                    .count(),
-                1,
-                "Removed previous dependency entry should contain exactly one newline"
-            );
-            changelog_content.replace_range(range_to_remove.clone(), "");
-            string_offset += range_to_remove.len();
+        match duplicate_entry_strategy {
+            DuplicateEntryStrategy::Append => (), // Do nothing
+            DuplicateEntryStrategy::Overwrite => {
+                let abs_h3_contents =
+                    &changelog_content[abs_existing_h3_start..abs_existing_h3_insert_pos];
+                let existing_deps =
+                    parse::find_existing_dependency_lines_to_replace(abs_h3_contents, &mut changes);
+
+                // Iterate in reverse to go towards to the start of the changelog string
+                // that way the next content we might have to update doesn't change position
+                // and we don't have to keep track of an intermediate offset
+                for line in existing_deps.iter().rev() {
+                    let range_to_remove = line.range_offset(abs_existing_h3_start);
+                    log::debug!(
+                        "Removing previous dependency entry: {}",
+                        &changelog_content[range_to_remove.clone()]
+                    );
+                    debug_assert_eq!(
+                        changelog_content[range_to_remove.clone()]
+                            .matches('\n')
+                            .count(),
+                        1,
+                        "Removed previous dependency entry should contain exactly one newline"
+                    );
+                    changelog_content.replace_range(range_to_remove.clone(), "");
+                    string_offset += range_to_remove.len();
+                }
+            }
         }
-        let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
+
         let mut changes_insert_pos = abs_existing_h3_insert_pos - string_offset;
         log::debug!("changes_insert_pos={changes_insert_pos}");
         let three_prev_chars = &changelog_content[changes_insert_pos - 3..changes_insert_pos];
@@ -82,7 +90,15 @@ pub fn add_changes_to_changelog_contents(
             "Inserting changes immediately after the following content: {}",
             &changelog_content[..changes_insert_pos]
         );
-        changelog_content.insert_str(changes_insert_pos, &changes_md);
+
+        let abs_h3_contents = &changelog_content[abs_existing_h3_start..changes_insert_pos];
+        let changes_markdown = get_formatted_changes(
+            abs_h3_contents,
+            changes,
+            entry_pattern,
+            markdown_pull_request_link,
+        );
+        changelog_content.insert_str(changes_insert_pos, &changes_markdown);
     } else {
         let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
         let new_h3_insert_pos =
@@ -308,7 +324,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     /// removed and replaced by a new entry showing the highest/newest version it was bumped to
     /// but not replacing the old/former version from the previous entry as that would be misleading
     #[test]
-    fn test_insert_changes_when_changes_section_exists() {
+    fn test_insert_changes_when_changes_section_exists_overwrite() {
         let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
         let changes = EXAMPLE_CHANGES_SMALL.to_vec();
         let entry_pattern = EntryPattern::default();
@@ -363,6 +379,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &changelog_content,
             expect_final_changelog_contents,
             "Not idempotent!"
+        );
+    }
+
+    /// The section already contains the env_logger dependency but we are using the 'append'
+    /// strategy so we expect it just stay as is
+    #[test]
+    fn test_insert_changes_when_changes_section_exists_append() {
+        let mut changelog_content = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES.to_owned();
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("env_logger", "0.11.6", "0.12.0"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r##"# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Some feature
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+- `env_logger`: 0.11.5 → 0.11.6
+- `semver`: 1.0.23 → 1.0.24
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.6 → 0.12.0 ([#1](https://github.com/user/repo/pull/1))
+
+### Fix
+
+- Some issue
+"##;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            DuplicateEntryStrategy::Append,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            DuplicateEntryStrategy::Append,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "NOT IDEMPOTENT!"
         );
     }
 

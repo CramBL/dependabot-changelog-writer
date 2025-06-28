@@ -48,6 +48,49 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
     changes
 }
 
+pub fn formatted_entry_lines(
+    changes: Vec<DependabotChange>,
+    entry_pattern: &EntryPattern,
+    markdown_pull_request_link: &str,
+) -> Vec<String> {
+    let mut formatted_entries = vec![];
+    for change in changes {
+        // For each change, add a list item in markdown format
+        let entry = entry_pattern.format(
+            change.name,
+            change.old_version(),
+            change.new_version,
+            markdown_pull_request_link,
+        );
+        formatted_entries.push(entry);
+    }
+    formatted_entries
+}
+
+pub fn get_formatted_changes(
+    abs_h3_contents: &str,
+    changes: Vec<DependabotChange>,
+    entry_pattern: &EntryPattern,
+    markdown_pull_request_link: &str,
+) -> String {
+    let changes_lines_md =
+        formatted_entry_lines(changes, entry_pattern, markdown_pull_request_link);
+    let mut changes_markdown = String::new();
+    for new_changes in changes_lines_md {
+        let mut already_exists = false;
+        for old_lines in abs_h3_contents.split_inclusive('\n') {
+            if new_changes == old_lines {
+                already_exists = true;
+                break;
+            }
+        }
+        if !already_exists {
+            changes_markdown.push_str(&new_changes);
+        }
+    }
+    changes_markdown
+}
+
 pub fn format_changes(
     changes: Vec<DependabotChange>,
     entry_pattern: &EntryPattern,
