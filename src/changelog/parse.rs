@@ -47,13 +47,13 @@ pub(crate) fn find_old_ver_from_line(line: &str) -> Option<String> {
         match st {
             ParseSt::BeforeOld => {
                 if ch == '`' && !code_block {
-                    progress = 1;
+                    progress = 0;
                     old_ver_start_pos = i;
                     code_block = true;
                 } else if ch == '`' && code_block {
-                    if progress > 7 {
+                    if progress > 6 {
                         let line_offset = old_ver_start_pos + extra_offset;
-                        let old_ver = &line[line_offset..line_offset + progress];
+                        let old_ver = &line[line_offset..line_offset + progress - 1];
                         return Some(old_ver.to_owned());
                     }
                 } else if ch.is_ascii_digit() {
@@ -214,8 +214,13 @@ pub fn find_existing_dependency_lines_to_replace(
 ) -> Vec<DependencyEntryLine> {
     let mut existing_deps = vec![];
     let mut current_pos = 0;
+    let mut seen_changes = vec![]; // ensure we only replace the first instance
+
     for line in changelog.split_inclusive('\n') {
         for change in &mut *changes {
+            if seen_changes.contains(&change.name) {
+                continue; // Skip if this change has already been matched
+            }
             if let Some(name_pos) = line.find(change.name) {
                 // We might have a partial match so we need to ensure it's not a match
                 // on e.g. 'clap' in 'clap_complete'
@@ -249,13 +254,18 @@ pub fn find_existing_dependency_lines_to_replace(
 
                 if valid_boundary {
                     // Parse old version from semver or SHA1
-                    if let Some(old_ver) = find_old_ver_from_line(&line[end_of_name_pos..]) {
+                    let curr_line = &line[end_of_name_pos..];
+                    if let Some(old_ver) = find_old_ver_from_line(curr_line) {
+                        log::trace!(
+                            "Found old version: '{old_ver}' from current line: '{curr_line}'"
+                        );
                         change.replace_old_version(old_ver);
                         let existing_dep = DependencyEntryLine {
                             line_start: current_pos,
                             line_len: line.len(),
                         };
                         existing_deps.push(existing_dep);
+                        seen_changes.push(change.name);
                         break;
                     }
                 }
@@ -272,6 +282,7 @@ mod tests {
     use super::*;
     use crate::test_util::*;
     use pretty_assertions::assert_str_eq;
+    use test_log::test;
 
     #[test]
     fn test_find_old_version_docker_sha1() {
@@ -312,7 +323,15 @@ mod tests {
         let test_str =
             "Bumps [some-submodule](https://github.com/org/repo) from `b0c35f6` to `c8bd600`.";
         let old_ver = find_old_ver_from_line(test_str).unwrap();
-        assert_str_eq!(&old_ver, "`b0c35f6`");
+        assert_str_eq!(&old_ver, "b0c35f6");
+    }
+
+    #[test]
+    fn test_find_old_version_semver_in_code_blocks() {
+        let test_str =
+            "- Update _github/codeql-action_ from `3.28.17` to [`3.28.18`](https://github.com/github/codeql-action/releases/tag/v3.28.18). ([#17](https://github.com/foo-bar/build-workflows/pull/17)) _@dependabot_";
+        let old_ver = find_old_ver_from_line(test_str).unwrap();
+        assert_str_eq!(&old_ver, "3.28.17");
     }
 
     #[test]
@@ -473,6 +492,51 @@ mod tests {
                     line_len: 23
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn test_find_existing_dependencies_to_replace_issue90() {
+        let changelog = r##"# Foo Workflows for GitHub Actions Changelog
+
+<!-- markdownlint-disable-next-line MD052 -->
+> [!NOTE]
+> All notable changes to this project will be documented in this file; the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<!--
+### Added - For new features.
+### Changed - For changes in existing functionality.
+### Deprecated - For soon-to-be removed features.
+### Removed - For now removed features.
+### Fixed - For any bug fixes.
+### Security - In case of vulnerabilities.
+-->
+
+## [UNRELEASED]
+
+### Changed
+
+- Update _github/codeql-action_ from `3.28.17` to [`3.28.18`](https://github.com/github/codeql-action/releases/tag/v3.28.18). ([#17](https://github.com/foo-bar/build-workflows/pull/17)) _@dependabot_
+- Update _docker/build-push-action_ from `6.16.0` to [`6.17.0`](https://github.com/docker/build-push-action/releases/tag/v6.17.0). ([#17](https://github.com/foo-bar/build-workflows/pull/17)) _@dependabot_
+- Update _github/codeql-action_ from `3.28.18` to [`3.28.19`](https://github.com/github/codeql-action/releases/tag/v3.28.19). ([#18](https://github.com/foo-bar/build-workflows/pull/18)) _@dependabot_
+- Update _docker/build-push-action_ from `6.17.0` to [`6.18.0`](https://github.com/docker/build-push-action/releases/tag/v6.17.0). ([#18](https://github.com/foo-bar/build-workflows/pull/18)) _@dependabot_
+"##;
+        let mut changes = CHANGES_ISSUE_90.to_vec();
+        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes);
+        // Actually the changelog has 2 entries with older versions, but we don't really support this so we just replace the first one seen
+        let expect_replaced_version = "3.28.17";
+
+        assert_str_eq!(
+            changes[0].old_version(),
+            expect_replaced_version,
+            "expected old 'github/codeql-action' version to be replaced by the existing entry from the changelog"
+        );
+        pretty_assertions::assert_eq!(
+            to_replace,
+            vec![DependencyEntryLine {
+                line_start: 629,
+                line_len: 200
+            }]
         );
     }
 }
