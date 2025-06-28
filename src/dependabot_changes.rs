@@ -8,7 +8,7 @@ pub mod old_version;
 pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
     let changes = parse_changes(body);
     for change in &changes {
-        log::debug!("{:?}", change);
+        log::debug!("{change:?}");
     }
     changes
 }

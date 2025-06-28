@@ -116,6 +116,8 @@ mod tests {
     use super::*;
     use crate::test_util::*;
     use pretty_assertions::assert_str_eq;
+    use test_log::test;
+    use testresult::TestResult;
 
     #[test]
     fn test_add_changes_to_changelog_content_small_changelog() {
@@ -590,5 +592,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             expect_final_changelog_contents,
             "Not idempotent"
         );
+    }
+
+    /// https://github.com/CramBL/dependabot-changelog-writer/issues/90
+    #[test]
+    fn test_add_changes_to_changelog_contents_issues90() -> TestResult {
+        let mut changelog_content = ISSUE_90_CHANGELOG.to_owned();
+        let entry_pattern =
+            EntryPattern::new("Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_")?;
+        let changes = CHANGES_ISSUE_90.to_vec();
+        let version_header = VersionHeader::Unreleased;
+        let section_header = "Changed";
+        let expect_final_changelog_contents = r##"# Foo Workflows for GitHub Actions Changelog
+
+<!-- markdownlint-disable-next-line MD052 -->
+> [!NOTE]
+> All notable changes to this project will be documented in this file; the format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+<!--
+### Added - For new features.
+### Changed - For changes in existing functionality.
+### Deprecated - For soon-to-be removed features.
+### Removed - For now removed features.
+### Fixed - For any bug fixes.
+### Security - In case of vulnerabilities.
+-->
+
+## [UNRELEASED]
+
+### Changed
+
+- Update _docker/build-push-action_ from `6.16.0` to [`6.17.0`](https://github.com/docker/build-push-action/releases/tag/v6.17.0). ([#17](https://github.com/foo-bar/build-workflows/pull/17)) _@dependabot_
+- Update _github/codeql-action_ from `3.28.18` to [`3.28.19`](https://github.com/github/codeql-action/releases/tag/v3.28.19). ([#18](https://github.com/foo-bar/build-workflows/pull/18)) _@dependabot_
+- Update _docker/build-push-action_ from `6.17.0` to [`6.18.0`](https://github.com/docker/build-push-action/releases/tag/v6.17.0). ([#18](https://github.com/foo-bar/build-workflows/pull/18)) _@dependabot_
+- Update _github/codeql-action_ from `3.28.17` to `3.29.0`. ([#1](https://github.com/user/repo/pull/1)) _@dependabot_
+- Update _docker/setup-buildx-action_ from `3.10.0` to `3.11.1`. ([#1](https://github.com/user/repo/pull/1)) _@dependabot_
+- Update _actions/attest-build-provenance_ from `2.3.0` to `2.4.0`. ([#1](https://github.com/user/repo/pull/1)) _@dependabot_
+- Update _actions/attest-sbom_ from `2.2.0` to `2.4.0`. ([#1](https://github.com/user/repo/pull/1)) _@dependabot_
+- Update _sigstore/cosign-installer_ from `3.8.2` to `3.9.0`. ([#1](https://github.com/user/repo/pull/1)) _@dependabot_
+
+## [v0.5.1] - 2025-05-13
+
+### Changed
+
+- Update _github/codeql-action_ from `3.28.16` to [`3.28.17`](https://github.com/github/codeql-action/releases/tag/v3.28.17). ([#14](https://github.com/foo-bar/build-workflows/pull/14)) _@dependabot_
+- Update _foo-bar/install-tool-from-github-release_ from `0.2.4` to [`0.2.5`](https://github.com/foo-bar/install-tool-from-github-release/releases/tag/v0.2.5). ([#16](https://github.com/foo-bar/build-workflows/pull/16)) _@dependabot_
+"##;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "mismatch"
+        );
+
+        // THIS IS NOT IDEMPOTENT!!
+        // WE DON'T SUPPORT MULTIPLE ENTRIES OF UPDATING THE SAME DEPENDENCY IF WE ARE IN 'OVERWRITE' MODE
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            &version_header,
+            section_header,
+        );
+        assert_ne!(
+            changelog_content, expect_final_changelog_contents,
+            "UNEXPECTEDLY IDEMPOTENT, FEATURE NOT SUPPORTED!"
+        );
+
+        Ok(())
     }
 }
