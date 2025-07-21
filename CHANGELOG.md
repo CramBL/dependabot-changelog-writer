@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 
 - `test-log`: 0.2.17 → 0.2.18 ([#94](https://github.com/CramBL/dependabot-changelog-writer/pull/94))
+- `serde_json`: 1.0.140 → 1.0.141 ([#95](https://github.com/CramBL/dependabot-changelog-writer/pull/95))
 
 ## [1.3.0]
 
