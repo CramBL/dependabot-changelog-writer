@@ -8,7 +8,7 @@ rust-version = "1.85"
 [dependencies]
 env_logger = { version = "0.11.8", default-features = false }
 log = { version = "0.4.27", default-features = false }
-serde_json = { version = "1.0.140", default-features = false, features = [
+serde_json = { version = "1.0.141", default-features = false, features = [
     "alloc",
 ] }
 similar = { version = "2.7.0", default-features = false, features = ["text"] }
