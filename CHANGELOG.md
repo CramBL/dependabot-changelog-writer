@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `actions/checkout`: 4 → 5 ([#98](https://github.com/CramBL/dependabot-changelog-writer/pull/98))
 - `serde_json`: 1.0.140 → 1.0.143 ([#99](https://github.com/CramBL/dependabot-changelog-writer/pull/99))
 - `tempfile`: 3.20.0 → 3.21.0 ([#99](https://github.com/CramBL/dependabot-changelog-writer/pull/99))
+- `log`: 0.4.27 → 0.4.28 ([#100](https://github.com/CramBL/dependabot-changelog-writer/pull/100))
 
 ## [1.3.0]
 
