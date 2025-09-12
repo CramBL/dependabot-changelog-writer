@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `actions/download-artifact`: 4 → 5 ([#97](https://github.com/CramBL/dependabot-changelog-writer/pull/97))
 - `actions/checkout`: 4 → 5 ([#98](https://github.com/CramBL/dependabot-changelog-writer/pull/98))
 - `serde_json`: 1.0.140 → 1.0.143 ([#99](https://github.com/CramBL/dependabot-changelog-writer/pull/99))
-- `tempfile`: 3.20.0 → 3.21.0 ([#99](https://github.com/CramBL/dependabot-changelog-writer/pull/99))
+- `log`: 0.4.27 → 0.4.28 ([#101](https://github.com/CramBL/dependabot-changelog-writer/pull/101))
+- `tempfile`: 3.20.0 → 3.22.0 ([#101](https://github.com/CramBL/dependabot-changelog-writer/pull/101))
 
 ## [1.3.0]
 
