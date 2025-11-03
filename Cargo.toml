@@ -17,7 +17,7 @@ similar = { version = "2.7.0", default-features = false, features = ["text"] }
 pretty_assertions = "1.4.1"
 tempfile = "3"
 testresult = "0.4.1"
-assert_cmd = "2.0.17"
+assert_cmd = "2.1.1"
 test-log = "0.2.18"
 
 # The binary is plenty fast, we optimize for size to reduce the amount that has to be downloaded when the action is run
