@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tempfile`: 3.22.0 → 3.23.0 ([#104](https://github.com/CramBL/dependabot-changelog-writer/pull/104))
 - `actions/upload-artifact`: 4 → 5 ([#105](https://github.com/CramBL/dependabot-changelog-writer/pull/105))
 - `actions/download-artifact`: 5 → 6 ([#105](https://github.com/CramBL/dependabot-changelog-writer/pull/105))
+- `assert_cmd`: 2.0.17 → 2.1.1 ([#106](https://github.com/CramBL/dependabot-changelog-writer/pull/106))
 
 ## [1.3.1]
 
