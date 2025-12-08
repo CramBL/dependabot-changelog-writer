@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `assert_cmd`: 2.0.17 → 2.1.1 ([#106](https://github.com/CramBL/dependabot-changelog-writer/pull/106))
 - `actions/checkout`: 5 → 6 ([#107](https://github.com/CramBL/dependabot-changelog-writer/pull/107))
 - `test-log`: 0.2.18 → 0.2.19 ([#108](https://github.com/CramBL/dependabot-changelog-writer/pull/108))
+- `log`: 0.4.28 → 0.4.29 ([#109](https://github.com/CramBL/dependabot-changelog-writer/pull/109))
 
 ## [1.3.1]
 
