@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `actions/checkout`: 5 → 6 ([#107](https://github.com/CramBL/dependabot-changelog-writer/pull/107))
 - `test-log`: 0.2.18 → 0.2.19 ([#108](https://github.com/CramBL/dependabot-changelog-writer/pull/108))
 - `log`: 0.4.28 → 0.4.29 ([#109](https://github.com/CramBL/dependabot-changelog-writer/pull/109))
+- `actions/upload-artifact`: 5 → 6 ([#110](https://github.com/CramBL/dependabot-changelog-writer/pull/110))
+- `actions/download-artifact`: 6 → 7 ([#110](https://github.com/CramBL/dependabot-changelog-writer/pull/110))
 
 ## [1.3.1]
 
