@@ -36,6 +36,7 @@ fn run() -> Result<()> {
             config.duplicate_entry_strategy(),
             config.version_header(),
             config.section_header(),
+            config.sub_section_header(),
         );
 
         let orig_changelog = config.read_changelog()?;

@@ -53,6 +53,7 @@ pub struct Config {
     duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: VersionHeader,
     section_header: String,
+    sub_section_header: String,
 }
 
 impl Config {
@@ -80,6 +81,9 @@ impl Config {
 
         let section_header = next_arg_trimmed(&mut args).ok_or("Missing section-header")?;
         log::debug!("section-header={section_header}");
+
+        let sub_section_header = next_arg_trimmed(&mut args).ok_or("Missing sub-section-header")?;
+        log::debug!("sub-section-header={sub_section_header}");
 
         let dry_run = next_arg_trimmed(&mut args).is_some_and(|s| s == "dry-run");
         log::info!("dry-run={dry_run}");
@@ -119,6 +123,7 @@ impl Config {
             duplicate_entry_strategy,
             VersionHeader::new(version_header),
             section_header,
+            sub_section_header,
         ))
     }
 
@@ -129,6 +134,7 @@ impl Config {
         duplicate_entry_strategy: DuplicateEntryStrategy,
         version_header: VersionHeader,
         section_header: String,
+        sub_section_header: String,
     ) -> Self {
         Self {
             dry_run,
@@ -137,6 +143,7 @@ impl Config {
             duplicate_entry_strategy,
             version_header,
             section_header,
+            sub_section_header,
         }
     }
 
@@ -146,6 +153,10 @@ impl Config {
 
     pub fn section_header(&self) -> &str {
         &self.section_header
+    }
+
+    pub fn sub_section_header(&self) -> &str {
+        &self.sub_section_header
     }
 
     pub fn read_changelog(&self) -> io::Result<String> {

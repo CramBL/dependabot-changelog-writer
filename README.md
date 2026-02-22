@@ -109,6 +109,10 @@ jobs:
         # default: 'Dependencies'
         section-header: ''
 
+        # The optional sub-section header to add the changelog entry under.
+        # default: ''
+        sub-section-header: ''
+
         # Whether or not to add, commit, & push the modified changelog
         # Note: If no changes are made, no commit is made either
         # default: 'true'

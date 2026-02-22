@@ -51,6 +51,10 @@ inputs:
     description: "The section header to add the changelog entry under"
     required: true
     default: "Dependencies"
+  sub-section-header:
+    description: "Optional sub section header to add the changelog entry under"
+    required: true
+    default: ""
   push-changes:
     description: "Whether or not to add, commit, & push the modified changelog. Note: If no changes are made, no commit is made either."
     required: true
@@ -138,6 +142,7 @@ runs:
         '${{ inputs.commit-message }}' \
         '${{ inputs.version }}' \
         '${{ inputs.section-header }}' \
+        '${{ inputs.sub-section-header }}' \
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}
