@@ -76,7 +76,7 @@ runs:
       shell: bash
       run: |
         echo "action_repo=dependabot-changelog-writer" >> $GITHUB_ENV
-        echo "action_org=CramBL" >> $GITHUB_ENV
+        echo "action_org=pree" >> $GITHUB_ENV
         echo "binary_name=dependabot-changelog-writer" >> $GITHUB_ENV
         echo "temp_dir=dependabot-changelog-writer-$(date +%s)" >> $GITHUB_ENV
         SHA=$( git hash-object ${{ inputs.changelog }} )
