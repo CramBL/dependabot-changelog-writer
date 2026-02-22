@@ -220,17 +220,17 @@ pub fn find_existing_sub_section_insert_position(
     None
 }
 
-pub fn find_new_sub_section_insert_position(changelog_content: &str) -> usize {
-    let mut content_pos = 0;
-    for l in changelog_content.split_inclusive('\n') {
-        // Check for h3 header
-        if l.starts_with("###") {
-            return content_pos;
-        }
-        content_pos += l.len();
-    }
-    content_pos
-}
+//pub fn find_new_sub_section_insert_position(changelog_content: &str) -> usize {
+//    let mut content_pos = 0;
+//    for l in changelog_content.split_inclusive('\n') {
+//        // Check for h3 header
+//        if l.starts_with("###") {
+//            return content_pos;
+//        }
+//        content_pos += l.len();
+//    }
+//    content_pos
+//}
 
 #[derive(Debug, PartialEq)]
 pub struct DependencyEntryLine {

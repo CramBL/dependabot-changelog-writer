@@ -25,6 +25,8 @@ pub fn add_changes_to_changelog_contents(
     });
 
     let mut h3_header = format!("### {section_header}\n");
+    let list_header = format!("- {sub_section_header}\n");
+
     // Reserve for the new changelog entry to avoid the worst case of allocating
     // the size of the existing content
     changelog_content.reserve(changes_formatted_len + h3_header.len() + 4); // +4 for the worst case of adding 4 newlines
@@ -104,10 +106,7 @@ pub fn add_changes_to_changelog_contents(
         let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
         let new_h3_insert_pos =
             parse::find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
-        let new_sub_section_insert_pos = if sub_section_header != "" {
-            parse::find_new_sub_section_insert_position(&changelog_content[new_h3_insert_pos..])
-        } else { 0 };
-        let insert_pos = h2_insert_pos + new_h3_insert_pos + new_sub_section_insert_pos;
+        let insert_pos = h2_insert_pos + new_h3_insert_pos;
 
         // Ensure that we are inserting after 2 newlines
         // by counting the the newlines in the previous two characters
@@ -120,6 +119,7 @@ pub fn add_changes_to_changelog_contents(
             h3_header.insert(0, '\n');
         }
         h3_header.push('\n');
+        h3_header.push_str(&list_header);
         h3_header.push_str(&changes_md);
         h3_header.push('\n');
         changelog_content.insert_str(h2_insert_pos + new_h3_insert_pos, &h3_header);
