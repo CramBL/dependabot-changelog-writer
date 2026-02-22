@@ -114,7 +114,8 @@ impl Config {
             .into());
         }
 
-        let entry_pattern = EntryPattern::new(&changelog_entry_pattern)?;
+        let pattern = if sub_section_header != "" { format!("  {changelog_entry_pattern}") } else { changelog_entry_pattern };
+        let entry_pattern = EntryPattern::new(&pattern)?;
 
         Ok(Self::new(
             dry_run,

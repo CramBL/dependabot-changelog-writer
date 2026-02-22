@@ -119,7 +119,10 @@ pub fn add_changes_to_changelog_contents(
             h3_header.insert(0, '\n');
         }
         h3_header.push('\n');
-        h3_header.push_str(&list_header);
+
+        if sub_section_header != "" {
+            h3_header.push_str(&list_header);
+        }
         h3_header.push_str(&changes_md);
         h3_header.push('\n');
         changelog_content.insert_str(h2_insert_pos + new_h3_insert_pos, &h3_header);
