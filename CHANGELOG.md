@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `serde_json`: 1.0.145 → 1.0.149 ([#112](https://github.com/CramBL/dependabot-changelog-writer/pull/112))
 - `assert_cmd`: 2.0.17 → 2.1.2 ([#112](https://github.com/CramBL/dependabot-changelog-writer/pull/112))
 - `env_logger`: 0.11.8 → 0.11.9 ([#113](https://github.com/CramBL/dependabot-changelog-writer/pull/113))
-- `tempfile`: 3.22.0 → 3.25.0 ([#113](https://github.com/CramBL/dependabot-changelog-writer/pull/113))
+- `tempfile`: 3.22.0 → 3.26.0 ([#116](https://github.com/CramBL/dependabot-changelog-writer/pull/116))
 
 ## [1.3.1]
 
