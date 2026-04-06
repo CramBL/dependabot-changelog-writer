@@ -11,7 +11,7 @@ log = { version = "0.4.29", default-features = false }
 serde_json = { version = "1.0.149", default-features = false, features = [
     "alloc",
 ] }
-similar = { version = "2.7.0", default-features = false, features = ["text"] }
+similar = { version = "3.0.0", default-features = false, features = ["text"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
