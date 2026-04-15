@@ -26,6 +26,7 @@ pub fn test_diff_issue51() -> TestResult {
     let commit_msg = "Updated changelog with updated dependencies";
     let changelog_section = "unreleased";
     let changelog_header3 = "Dependencies";
+    let changelog_subsection = "";
     let dry_run = "dry-run";
 
     let mut cmd = Command::cargo_bin(BIN_NAME)?;
@@ -38,6 +39,7 @@ pub fn test_diff_issue51() -> TestResult {
             commit_msg,
             changelog_section,
             changelog_header3,
+            changelog_subsection,
             dry_run,
         ]);
 

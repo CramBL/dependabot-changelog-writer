@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn test_parse_example_to_changes_7_crates_semver_custom_pattern() {
         let changes = EXAMPLE_CHANGES.to_vec();
-        let entry_pattern = &EntryPattern::new("Bump `[dep]` from [old] to [new]").unwrap();
+        let entry_pattern = &EntryPattern::new("Bump `[dep]` from [old] to [new]", "").unwrap();
 
         let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\
@@ -222,7 +222,7 @@ mod tests {
     fn test_parse_example_to_changes_7_crates_semver_custom_pattern_emojies() {
         let changes = EXAMPLE_CHANGES.to_vec();
         let entry_pattern =
-            &EntryPattern::new("📝 Update [dep] from 🩺[old]🩺 🚀 🍄[new]🍄").unwrap();
+            &EntryPattern::new("📝 Update [dep] from 🩺[old]🩺 🚀 🍄[new]🍄", "").unwrap();
 
         let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
         let expect_md = "\

@@ -114,7 +114,7 @@ impl Config {
             .into());
         }
 
-        let indentation = sub_section_header != "";
+        let indentation = if sub_section_header != "" { "2-spaces" } else { "" };
         let entry_pattern = EntryPattern::new(&changelog_entry_pattern, indentation)?;
 
         Ok(Self::new(
