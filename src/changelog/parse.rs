@@ -201,17 +201,15 @@ pub fn find_existing_sub_section_insert_position(
         content_pos += l.len();
         if l.starts_with("-") {
             if l[1..].contains(sub_section_header){
-                let mut offset_withing_sub_section = 0;
+                let mut offset_within_sub_section = 0;
                 for l in changelog_content[content_pos..].split_inclusive('\n') {
                     if l.starts_with("-") {
-                        // There is usually no empty line between list items
-                        // offset_withing_subsection -= 1;
                         break;
                     }
-                    offset_withing_sub_section += l.len();
+                    offset_within_sub_section += l.len();
                 }
 
-                return Some((content_pos, content_pos + offset_withing_sub_section));
+                return Some((content_pos, content_pos + offset_within_sub_section));
             }
         } else if l.starts_with("###") {
             return None;
@@ -219,18 +217,6 @@ pub fn find_existing_sub_section_insert_position(
     }
     None
 }
-
-//pub fn find_new_sub_section_insert_position(changelog_content: &str) -> usize {
-//    let mut content_pos = 0;
-//    for l in changelog_content.split_inclusive('\n') {
-//        // Check for h3 header
-//        if l.starts_with("###") {
-//            return content_pos;
-//        }
-//        content_pos += l.len();
-//    }
-//    content_pos
-//}
 
 #[derive(Debug, PartialEq)]
 pub struct DependencyEntryLine {
