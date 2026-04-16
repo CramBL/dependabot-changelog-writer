@@ -47,7 +47,20 @@ pub fn add_changes_to_changelog_contents(
         parse::find_existing_h3_insert_position(&changelog_content[h2_insert_pos..], section_header)
     {
         let abs_existing_h3_start = h2_insert_pos + existing_h3_rel_start;
-        let abs_existing_h3_insert_pos = h2_insert_pos + existing_h3_rel_insert_pos;
+        let mut abs_existing_h3_insert_pos = h2_insert_pos + existing_h3_rel_insert_pos;
+
+        if !sub_section_header.is_empty() {
+            if let Some((_, sub_section_insert_pos)) = parse::find_existing_sub_section_insert_position(
+                &changelog_content[abs_existing_h3_start..abs_existing_h3_insert_pos],
+                sub_section_header,
+            ) {
+                abs_existing_h3_insert_pos = abs_existing_h3_start + sub_section_insert_pos;
+            } else {
+                changelog_content.insert_str(abs_existing_h3_insert_pos, &list_header);
+                abs_existing_h3_insert_pos += list_header.len();
+            }
+        }
+
         log::debug!(
             "abs_existing_h3_start={abs_existing_h3_start}, abs_existing_h3_insert_pos={abs_existing_h3_insert_pos}"
         );
