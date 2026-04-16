@@ -1,6 +1,6 @@
 use std::ops;
 
-use crate::{changelog, config::VersionHeader, dependabot_changes::dependabot_change::DependabotChange};
+use crate::{config::VersionHeader, dependabot_changes::dependabot_change::DependabotChange};
 
 /// Attempts to find the "old version" in a line describing a dependency update
 /// will attempt to find semver or SHA1
@@ -203,7 +203,7 @@ pub fn find_existing_sub_section_insert_position(
             if l[1..].contains(sub_section_header){
                 let mut offset_within_sub_section = 0;
                 for l in changelog_content[content_pos..].split_inclusive('\n') {
-                    if l.starts_with("-") {
+                    if l.starts_with("-") || l.starts_with("\n") {
                         break;
                     }
                     offset_within_sub_section += l.len();
