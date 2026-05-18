@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `similar`: 2.7.0 → 3.1.0 ([#122](https://github.com/CramBL/dependabot-changelog-writer/pull/122))
 - `test-log`: 0.2.18 → 0.2.20 ([#123](https://github.com/CramBL/dependabot-changelog-writer/pull/123))
 - `assert_cmd`: 2.0.17 → 2.2.2 ([#124](https://github.com/CramBL/dependabot-changelog-writer/pull/124))
+- `codecov/codecov-action`: 5 → 6 ([#120](https://github.com/CramBL/dependabot-changelog-writer/pull/120))
 
 ## [1.3.1]
 
