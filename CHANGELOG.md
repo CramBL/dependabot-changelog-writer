@@ -21,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `assert_cmd`: 2.0.17 → 2.2.2 ([#124](https://github.com/CramBL/dependabot-changelog-writer/pull/124))
 - `serde_json`: 1.0.145 → 1.0.150 ([#125](https://github.com/CramBL/dependabot-changelog-writer/pull/125))
 - `similar`: 2.7.0 → 3.1.1 ([#125](https://github.com/CramBL/dependabot-changelog-writer/pull/125))
-- `log`: 0.4.28 → 0.4.30 ([#126](https://github.com/CramBL/dependabot-changelog-writer/pull/126))
 - `test-log`: 0.2.18 → 0.2.21 ([#126](https://github.com/CramBL/dependabot-changelog-writer/pull/126))
+- `log`: 0.4.28 → 0.4.32 ([#127](https://github.com/CramBL/dependabot-changelog-writer/pull/127))
 
 ## [1.3.1]
 
