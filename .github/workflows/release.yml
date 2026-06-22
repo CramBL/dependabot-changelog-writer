@@ -23,7 +23,7 @@ jobs:
       binary_name: dependabot-changelog-writer${{ matrix.file_extension }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: Swatinem/rust-cache@v2
 
       - name: Build macos
@@ -64,7 +64,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
 
       - name: Create Release
@@ -80,7 +80,7 @@ jobs:
       RUST_BACKTRACE: 1
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./
         with:
           push-changes: false
