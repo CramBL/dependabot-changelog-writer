@@ -10,12 +10,12 @@ pub struct EntryPattern {
 
 impl Default for EntryPattern {
     fn default() -> Self {
-        Self::new(Self::DEFAULT_PATTERN).expect("Failed to construct default entry pattern")
+        Self::new(Self::DEFAULT_PATTERN, "").expect("Failed to construct default entry pattern")
     }
 }
 
 impl EntryPattern {
-    const DEFAULT_PATTERN: &str = "`[dep]`: [old] → [new] ([pr-link])";
+    pub const DEFAULT_PATTERN: &str = "`[dep]`: [old] → [new] ([pr-link])";
 
     // Markdown prefix for a list entry
     const LINE_PREFIX: &'static str = "- ";
@@ -36,6 +36,16 @@ impl EntryPattern {
     pub const NEW_VERSION_TOKEN_HARDENED: &str = "{{new}}";
     pub const PULL_REQUEST_LINK_TOKEN_HARDENED: &str = "{{pr-link}}";
 
+    pub const fn transform_indentation(input: &str) -> &str {
+        match input.as_bytes() {
+            b"2-spaces" => "  ",
+            b"3-spaces" => "   ",
+            b"4-spaces" => "    ",
+            b"tab"      => "\t",
+            _           => "",
+        }
+    }
+
     /// # Arguments
     ///
     /// `pattern`: Template string defining how dependency updates are formatted in changelog entries.
@@ -45,10 +55,14 @@ impl EntryPattern {
     ///
     /// e.g. 'Bump [dep] from [old] to [new] ([pr-link])'
     ///
+    /// `indentation`: string defining the prefix spacing for the entry.
+    /// Supported values: '2-spaces', '3-spaces', '4-spaces' or 'tab'.
+    /// Any other value result in no prefix spacing.
+    ///
     /// # Errors
     ///
     /// If the pattern does not contain all the expected tokens exactly once and in order.
-    pub fn new(pattern: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(pattern: &str, indentation: &str) -> Result<Self, Box<dyn Error>> {
         if pattern.is_empty() {
             return Err(
                 "Missing entry pattern. Expected template string such as: '[dep]: [old] → [new] ([pr-link])'"
@@ -91,7 +105,8 @@ impl EntryPattern {
                 Self::PULL_REQUEST_LINK_TOKEN_HARDENED,
             );
 
-        let mut cooked_pattern = Self::LINE_PREFIX.to_owned();
+        let mut cooked_pattern = Self::transform_indentation(indentation).to_owned();
+        cooked_pattern.push_str(Self::LINE_PREFIX);
         cooked_pattern.push_str(&hardened_pattern);
         cooked_pattern.push('\n');
 
@@ -144,7 +159,7 @@ mod tests {
     #[test]
     fn test_valid_pattern_default() {
         let pattern = EntryPattern::DEFAULT_PATTERN;
-        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let entry_pattern = EntryPattern::new(pattern, "").unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
             "- `{{dep}}`: {{old}} → {{new}} ({{pr-link}})\n"
@@ -155,7 +170,7 @@ mod tests {
     #[test]
     fn test_valid_pattern_simple() {
         let pattern = "Bump [dep] from [old] to [new] ([pr-link])";
-        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let entry_pattern = EntryPattern::new(pattern, "").unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
             "- Bump {{dep}} from {{old}} to {{new}} ({{pr-link}})\n"
@@ -166,7 +181,7 @@ mod tests {
     #[test]
     fn test_valid_pattern_simple_pr_link_at_beginning() {
         let pattern = "([pr-link]) Bump [dep] from [old] to [new]";
-        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let entry_pattern = EntryPattern::new(pattern, "").unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
             "- ({{pr-link}}) Bump {{dep}} from {{old}} to {{new}}\n"
@@ -177,7 +192,7 @@ mod tests {
     #[test]
     fn test_valid_pattern_simple_without_pr_link() {
         let pattern = "Bump [dep] from [old] to [new]";
-        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let entry_pattern = EntryPattern::new(pattern, "").unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
             "- Bump {{dep}} from {{old}} to {{new}}\n"
@@ -188,7 +203,7 @@ mod tests {
     #[test]
     fn test_valid_pattern_multiple_pr_link() {
         let pattern = "[pr-link] bumps [dep] from [old] to [new] ([pr-link])";
-        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let entry_pattern = EntryPattern::new(pattern, "").unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
             "- {{pr-link}} bumps {{dep}} from {{old}} to {{new}} ({{pr-link}})\n"
@@ -199,7 +214,7 @@ mod tests {
     #[test]
     fn test_valid_pattern_emojies() {
         let pattern = "📝 Update [dep] from [old] 🚀 [new]🍄";
-        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let entry_pattern = EntryPattern::new(pattern, "").unwrap();
         assert_str_eq!(
             entry_pattern.cooked_pattern,
             "- 📝 Update {{dep}} from {{old}} 🚀 {{new}}🍄\n"
@@ -213,7 +228,7 @@ mod tests {
     #[test]
     fn test_missing_token() {
         let pattern = "Bump [dep] from [old]";
-        let result = EntryPattern::new(pattern);
+        let result = EntryPattern::new(pattern, "");
         assert!(result.is_err());
         assert_str_eq!(result.unwrap_err().to_string(), "Missing token: [new]");
     }
@@ -221,7 +236,7 @@ mod tests {
     #[test]
     fn test_out_of_order_tokens() {
         let pattern = "Bump [old] to [new] for [dep]";
-        let result = EntryPattern::new(pattern);
+        let result = EntryPattern::new(pattern, "");
         assert!(result.is_err());
         assert_str_eq!(
             result.unwrap_err().to_string(),
@@ -232,7 +247,7 @@ mod tests {
     #[test]
     fn test_duplicate_tokens() {
         let pattern = "Bump [dep] from [old] to [new] and then back to [old]";
-        let result = EntryPattern::new(pattern);
+        let result = EntryPattern::new(pattern, "");
         assert_str_eq!(
             result.unwrap_err().to_string(),
             "2 occurrences of [old], expected exactly 1"
@@ -242,10 +257,54 @@ mod tests {
     #[test]
     fn test_edge_case_empty_pattern() {
         let pattern = "";
-        let result = EntryPattern::new(pattern);
+        let result = EntryPattern::new(pattern, "");
         assert_str_eq!(
             result.unwrap_err().to_string(),
             "Missing entry pattern. Expected template string such as: '[dep]: [old] → [new] ([pr-link])'"
         );
+    }
+
+    #[test]
+    fn test_indentation_2_spaces() {
+        let pattern = EntryPattern::DEFAULT_PATTERN;
+        let entry_pattern = EntryPattern::new(pattern, "2-spaces").unwrap();
+        assert_str_eq!(
+            entry_pattern.cooked_pattern,
+            "  - `{{dep}}`: {{old}} → {{new}} ({{pr-link}})\n"
+        );
+        assert_eq!(entry_pattern.min_len(), "  - ``:  →  ()\n".len());
+    }
+
+    #[test]
+    fn test_indentation_3_spaces() {
+        let pattern = EntryPattern::DEFAULT_PATTERN;
+        let entry_pattern = EntryPattern::new(pattern, "3-spaces").unwrap();
+        assert_str_eq!(
+            entry_pattern.cooked_pattern,
+            "   - `{{dep}}`: {{old}} → {{new}} ({{pr-link}})\n"
+        );
+        assert_eq!(entry_pattern.min_len(), "   - ``:  →  ()\n".len());
+    }
+
+    #[test]
+    fn test_indentation_4_spaces() {
+        let pattern = EntryPattern::DEFAULT_PATTERN;
+        let entry_pattern = EntryPattern::new(pattern, "4-spaces").unwrap();
+        assert_str_eq!(
+            entry_pattern.cooked_pattern,
+            "    - `{{dep}}`: {{old}} → {{new}} ({{pr-link}})\n"
+        );
+        assert_eq!(entry_pattern.min_len(), "    - ``:  →  ()\n".len());
+    }
+
+    #[test]
+    fn test_indentation_tab() {
+        let pattern = EntryPattern::DEFAULT_PATTERN;
+        let entry_pattern = EntryPattern::new(pattern, "tab").unwrap();
+        assert_str_eq!(
+            entry_pattern.cooked_pattern,
+            "\t- `{{dep}}`: {{old}} → {{new}} ({{pr-link}})\n"
+        );
+        assert_eq!(entry_pattern.min_len(), "\t- ``:  →  ()\n".len());
     }
 }
