@@ -22,9 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test-log`: 0.2.18 → 0.2.21 ([#126](https://github.com/CramBL/dependabot-changelog-writer/pull/126))
 - `actions/checkout`: 6 → 7 ([#128](https://github.com/CramBL/dependabot-changelog-writer/pull/128))
 - `codecov/codecov-action`: 5 → 7 ([#128](https://github.com/CramBL/dependabot-changelog-writer/pull/128))
-- `serde_json`: 1.0.145 → 1.0.151 ([#129](https://github.com/CramBL/dependabot-changelog-writer/pull/129))
 - `similar`: 2.7.0 → 3.2.0 ([#131](https://github.com/CramBL/dependabot-changelog-writer/pull/131))
 - `log`: 0.4.28 → 0.4.34 ([#132](https://github.com/CramBL/dependabot-changelog-writer/pull/132))
+- `serde_json`: 1.0.145 → 1.0.154 ([#134](https://github.com/CramBL/dependabot-changelog-writer/pull/134))
+- `testresult`: 0.4.1 → 0.4.2 ([#134](https://github.com/CramBL/dependabot-changelog-writer/pull/134))
 
 ## [1.3.1]
 
