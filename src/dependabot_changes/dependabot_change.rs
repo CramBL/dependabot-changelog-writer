@@ -1,10 +1,19 @@
 use super::old_version::OldVersion;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct DependabotChange<'s> {
     pub name: &'s str,
     old_version: OldVersion<'s>,
     pub new_version: &'s str,
+    pub url: Option<&'s str>,
+}
+
+impl<'s> PartialEq for DependabotChange<'s> {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.old_version == other.old_version
+            && self.new_version == other.new_version
+    }
 }
 
 impl<'s> DependabotChange<'s> {
@@ -13,7 +22,41 @@ impl<'s> DependabotChange<'s> {
             name,
             old_version: OldVersion::FromDependabot(old_version),
             new_version,
+            url: None,
         }
+    }
+
+    #[allow(dead_code)]
+    pub const fn with_url(mut self, url: &'s str) -> Self {
+        self.url = Some(url);
+        self
+    }
+
+    pub fn set_url(&mut self, url: &'s str) {
+        self.url = Some(url);
+    }
+
+    pub fn dep_name(&self) -> &'s str {
+        if self.name.starts_with('[') {
+            if let Some(end) = self.name.find(']') {
+                return &self.name[1..end];
+            }
+        }
+        self.name
+    }
+
+    pub fn dep_url(&self) -> Option<&'s str> {
+        if let Some(url) = self.url {
+            return Some(url);
+        }
+        if self.name.starts_with('[') {
+            if let Some(open_paren) = self.name.find("](") {
+                if let Some(end_paren) = self.name[open_paren + 2..].find(')') {
+                    return Some(&self.name[open_paren + 2..open_paren + 2 + end_paren]);
+                }
+            }
+        }
+        None
     }
 
     /// The combined length of the name + old_version + new_version strings
@@ -21,7 +64,10 @@ impl<'s> DependabotChange<'s> {
     /// Add the length of the template string without tokens to get the
     /// total formatted length.
     pub fn total_len(&self) -> usize {
-        self.name.len() + self.old_version.len() + self.new_version.len()
+        self.name.len()
+            + self.old_version.len()
+            + self.new_version.len()
+            + self.dep_url().map_or(0, |u| u.len())
     }
 
     /// Attempts to parse a DependabotChange from a string.
@@ -55,11 +101,20 @@ impl<'s> DependabotChange<'s> {
         let (name, rest) = haystack.split_once("from")?;
         let (old_version, new_version) = rest.split_once("to")?;
 
-        Some(DependabotChange::new(
-            name.trim().trim_start_matches('`').trim_end_matches('`'),
+        let trimmed_name = name.trim().trim_start_matches('`').trim_end_matches('`');
+        let mut change = DependabotChange::new(
+            trimmed_name,
             old_version.trim(),
             new_version.trim().trim_end_matches('.'),
-        ))
+        );
+        if trimmed_name.starts_with('[') {
+            if let Some(open_paren) = trimmed_name.find("](") {
+                if let Some(end_paren) = trimmed_name[open_paren + 2..].find(')') {
+                    change.url = Some(&trimmed_name[open_paren + 2..open_paren + 2 + end_paren]);
+                }
+            }
+        }
+        Some(change)
     }
 
     pub fn replace_old_version(&mut self, old_version: String) {
