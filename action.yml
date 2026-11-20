@@ -16,16 +16,28 @@ inputs:
       Uses [dep], [old], [new], [pr-link] as placeholder tokens for dependency name, old version,
       new version, and pull request link respectively.
 
-      Tokens must appear in order: [dep], [old], [new].
+      Alternatively, separate tokens are available:
+      - [dep-name] and [dep-url] for dependency name and its repository URL.
+      - [pr-number] and [pr-url] for pull request number and URL.
 
-      The [pr-link] token is optional and may be specified at any position.
+      Tokens must appear in order: [dep] (or [dep-name]), [old], [new].
+
+      The [pr-link], [pr-number], [pr-url], and [dep-url] tokens are optional and may be specified at any position.
 
       Examples:
       - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
       - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
       - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
+      - Pattern: '[`[dep-name]`]([dep-url]): [old] → [new] ([\#[pr-number]]([pr-url]))' produces '[`actions/checkout`](https://github.com/actions/checkout): 3 → 4 ([\#1](https://github.com/user/repo/pull/1))'
     required: true
     default: "`[dep]`: [old] → [new] ([pr-link])"
+  entry-separator:
+    description: >
+      Separator between changelog entries.
+      Defaults to a single newline ('\n').
+      Set to '\n\n' for a blank line between entries.
+    required: true
+    default: '\n'
   duplicate-entry-strategy:
     description: >
       Strategy for handling duplicate dependency entries in changelog's unreleased section.
@@ -138,6 +150,7 @@ runs:
         '${{ inputs.commit-message }}' \
         '${{ inputs.version }}' \
         '${{ inputs.section-header }}' \
+        '${{ inputs.entry-separator }}' \
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}

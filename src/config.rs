@@ -45,11 +45,28 @@ impl TryFrom<&str> for DuplicateEntryStrategy {
     }
 }
 
+pub const DEFAULT_ENTRY_SEPARATOR: &str = "\n";
+
+pub fn parse_entry_separator(s: &str) -> Result<String> {
+    let unescaped = s
+        .replace("\\r\\n", "\r\n")
+        .replace("\\n", "\n")
+        .replace("\\r", "\r");
+    match unescaped.as_str() {
+        "\n" | "\n\n" | "\r\n" | "\r\n\r\n" => Ok(unescaped),
+        _ => Err(format!(
+            "Invalid entry separator: {s:?}. Supported values are '\\n', '\\n\\n', '\\r\\n', or '\\r\\n\\r\\n'"
+        )
+        .into()),
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     dry_run: bool,
     changelog_path: PathBuf,
     entry_pattern: EntryPattern,
+    entry_separator: String,
     duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: VersionHeader,
     section_header: String,
@@ -81,9 +98,6 @@ impl Config {
         let section_header = next_arg_trimmed(&mut args).ok_or("Missing section-header")?;
         log::debug!("section-header={section_header}");
 
-        let dry_run = next_arg_trimmed(&mut args).is_some_and(|s| s == "dry-run");
-        log::info!("dry-run={dry_run}");
-
         if section_header.starts_with("###") {
             log::error!(
                 "Invalid section header: Starts with '###' when an h3 header already implies a prefix of '###'"
@@ -92,6 +106,20 @@ impl Config {
             NOTE: section header is assumed to be an h3 header, meaning it implies a prefix of '###' such as '### Changes'\n\
             HINT: Try removing the '###' prefix").into());
         }
+
+        let next = args.next();
+        let (entry_separator, dry_run) = match next {
+            Some(arg) if arg.trim() == "dry-run" => (DEFAULT_ENTRY_SEPARATOR.to_owned(), true),
+            Some(arg) => {
+                let sep = parse_entry_separator(&arg)?;
+                let dry_run = args.next().as_deref().map(str::trim) == Some("dry-run");
+                (sep, dry_run)
+            }
+            None => (DEFAULT_ENTRY_SEPARATOR.to_owned(), false),
+        };
+
+        log::debug!("entry-separator={entry_separator:?}");
+        log::info!("dry-run={dry_run}");
 
         if args.next().is_some() {
             return Err("Too many arguments provided".into());
@@ -116,6 +144,7 @@ impl Config {
             dry_run,
             changelog_path,
             entry_pattern,
+            entry_separator,
             duplicate_entry_strategy,
             VersionHeader::new(version_header),
             section_header,
@@ -126,6 +155,7 @@ impl Config {
         dry_run: bool,
         changelog_path: PathBuf,
         entry_pattern: EntryPattern,
+        entry_separator: String,
         duplicate_entry_strategy: DuplicateEntryStrategy,
         version_header: VersionHeader,
         section_header: String,
@@ -134,10 +164,15 @@ impl Config {
             dry_run,
             changelog_path,
             entry_pattern,
+            entry_separator,
             duplicate_entry_strategy,
             version_header,
             section_header,
         }
+    }
+
+    pub fn entry_separator(&self) -> &str {
+        &self.entry_separator
     }
 
     pub fn version_header(&self) -> &VersionHeader {
@@ -166,5 +201,25 @@ impl Config {
 
     pub fn duplicate_entry_strategy(&self) -> DuplicateEntryStrategy {
         self.duplicate_entry_strategy
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_entry_separator() {
+        assert_eq!(parse_entry_separator("\n").unwrap(), "\n");
+        assert_eq!(parse_entry_separator("\\n").unwrap(), "\n");
+        assert_eq!(parse_entry_separator("\n\n").unwrap(), "\n\n");
+        assert_eq!(parse_entry_separator("\\n\\n").unwrap(), "\n\n");
+        assert_eq!(parse_entry_separator("\r\n").unwrap(), "\r\n");
+        assert_eq!(parse_entry_separator("\\r\\n").unwrap(), "\r\n");
+        assert_eq!(parse_entry_separator("\r\n\r\n").unwrap(), "\r\n\r\n");
+        assert_eq!(parse_entry_separator("\\r\\n\\r\\n").unwrap(), "\r\n\r\n");
+        assert!(parse_entry_separator("").is_err());
+        assert!(parse_entry_separator("foo").is_err());
+        assert!(parse_entry_separator("\n\n\n").is_err());
     }
 }
