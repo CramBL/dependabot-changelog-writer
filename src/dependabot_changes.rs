@@ -5,9 +5,41 @@ pub mod dependabot_change;
 pub mod entry_pattern;
 pub mod old_version;
 
+pub fn extract_markdown_links(text: &str) -> Vec<(&str, &str)> {
+    let mut links = Vec::new();
+    let mut rest = text;
+
+    while let Some(start_bracket) = rest.find('[') {
+        let after_start = &rest[start_bracket + 1..];
+        if let Some(end_bracket) = after_start.find(']') {
+            let label = &after_start[..end_bracket];
+            let after_bracket = &after_start[end_bracket + 1..];
+            if let Some(stripped) = after_bracket.strip_prefix('(') {
+                if let Some(end_paren) = stripped.find(')') {
+                    let url = &stripped[..end_paren];
+                    links.push((label.trim(), url.trim()));
+                    rest = &stripped[end_paren + 1..];
+                    continue;
+                }
+            }
+        }
+        rest = after_start;
+    }
+
+    links
+}
+
 pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
-    let changes = parse_changes(body);
-    for change in &changes {
+    let mut changes = parse_changes(body);
+    let links = extract_markdown_links(body);
+
+    for change in &mut changes {
+        for &(label, url) in &links {
+            if label == change.dep_name() || label.contains(change.dep_name()) {
+                change.set_url(url);
+                break;
+            }
+        }
         log::debug!("{change:?}");
     }
     changes
@@ -21,7 +53,7 @@ const UPDATE_KEYWORDS: [(&str, usize); 2] = [
     (UPDATE_LINE_KEYWORD_B, UPDATE_LINE_KEYWORD_B.len()),
 ];
 
-fn parse_changes(body: &str) -> Vec<DependabotChange> {
+fn parse_changes(body: &str) -> Vec<DependabotChange<'_>> {
     let mut changes = Vec::new();
 
     let mut skip_parsing = false;
@@ -56,12 +88,7 @@ pub fn formatted_entry_lines(
     let mut formatted_entries = vec![];
     for change in changes {
         // For each change, add a list item in markdown format
-        let entry = entry_pattern.format(
-            change.name,
-            change.old_version(),
-            change.new_version,
-            markdown_pull_request_link,
-        );
+        let entry = entry_pattern.format_change(&change, markdown_pull_request_link);
         formatted_entries.push(entry);
     }
     formatted_entries
@@ -101,12 +128,7 @@ pub fn format_changes(
     // Iterate over each change and format it into the markdown string
     for change in changes {
         // For each change, add a list item in markdown format
-        let entry = entry_pattern.format(
-            change.name,
-            change.old_version(),
-            change.new_version,
-            markdown_pull_request_link,
-        );
+        let entry = entry_pattern.format_change(&change, markdown_pull_request_link);
         markdown.push_str(&entry);
     }
 

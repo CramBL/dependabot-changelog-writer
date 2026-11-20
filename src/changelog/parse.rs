@@ -221,25 +221,30 @@ pub fn find_existing_dependency_lines_to_replace(
             if seen_changes.contains(&change.name) {
                 continue; // Skip if this change has already been matched
             }
-            if let Some(name_pos) = line.find(change.name) {
+            let dep_name = change.dep_name();
+            if let Some(name_pos) = line.find(dep_name) {
                 // We might have a partial match so we need to ensure it's not a match
                 // on e.g. 'clap' in 'clap_complete'
-                let end_of_name_pos = name_pos + change.name.len();
+                let end_of_name_pos = name_pos + dep_name.len();
                 const VALID_SURROUNDING_CHARS_IF_EQ: [char; 3] = ['`', '_', '*'];
-                const EXTRA_VALID_POST_CHARS: [char; 2] = [':', '→'];
+                const EXTRA_VALID_POST_CHARS: [char; 3] = [':', '→', ']'];
 
+                let mut next_must_match = None;
                 let valid_boundary = {
-                    let mut next_must_match = None;
-                    let pre_char_ok = if let Some(prev_char) = line.chars().nth(name_pos - 1) {
+                    let pre_char_ok = if name_pos == 0 {
+                        true
+                    } else if let Some(prev_char) = line[..name_pos].chars().last() {
                         if VALID_SURROUNDING_CHARS_IF_EQ.contains(&prev_char) {
                             next_must_match = Some(prev_char);
                         }
-                        prev_char.is_whitespace() || next_must_match.is_some()
+                        prev_char.is_whitespace() || prev_char == '[' || next_must_match.is_some()
                     } else {
                         true
                     };
 
-                    let post_char_ok = if let Some(next_char) = line.chars().nth(end_of_name_pos) {
+                    let post_char_ok = if let Some(next_char) =
+                        line[end_of_name_pos..].chars().next()
+                    {
                         if let Some(must_match) = next_must_match {
                             must_match == next_char
                         } else {
@@ -253,8 +258,26 @@ pub fn find_existing_dependency_lines_to_replace(
                 };
 
                 if valid_boundary {
+                    // Skip closing delimiter if present
+                    let mut after_name_pos = end_of_name_pos;
+                    if let Some(must_match) = next_must_match {
+                        if line[after_name_pos..].starts_with(must_match) {
+                            after_name_pos += must_match.len_utf8();
+                        }
+                    }
+                    if line[after_name_pos..].starts_with("](") {
+                        if let Some(close_paren) = line[after_name_pos..].find(')') {
+                            after_name_pos += close_paren + 1;
+                        }
+                    }
+                    if let Some(first_char) = line[after_name_pos..].chars().next() {
+                        if VALID_SURROUNDING_CHARS_IF_EQ.contains(&first_char) {
+                            after_name_pos += first_char.len_utf8();
+                        }
+                    }
+
                     // Parse old version from semver or SHA1
-                    let curr_line = &line[end_of_name_pos..];
+                    let curr_line = &line[after_name_pos..];
                     if let Some(old_ver) = find_old_ver_from_line(curr_line) {
                         log::trace!(
                             "Found old version: '{old_ver}' from current line: '{curr_line}'"
@@ -412,7 +435,7 @@ mod tests {
 
         let expect_h2_pos = 29;
 
-        let insert_pos = find_h2_insert_position(&changelog_content, &version_header).unwrap();
+        let insert_pos = find_h2_insert_position(changelog_content, &version_header).unwrap();
         assert_eq!(insert_pos, expect_h2_pos);
         eprintln!("{}", &changelog_content[..insert_pos - 1]);
         assert!(changelog_content[..insert_pos - 1].ends_with("## [unreleased]"));
