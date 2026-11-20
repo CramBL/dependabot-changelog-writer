@@ -18,7 +18,7 @@ impl EntryPattern {
     const DEFAULT_PATTERN: &str = "`[dep]`: [old] → [new] ([pr-link])";
 
     // Markdown prefix for a list entry
-    const LINE_PREFIX: &'static str = "- ";
+    pub const LINE_PREFIX: &'static str = "- ";
 
     pub const DEPENDENCY_TOKEN: &str = "[dep]";
     pub const OLD_VERSION_TOKEN: &str = "[old]";
