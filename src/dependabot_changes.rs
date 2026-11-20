@@ -6,9 +6,89 @@ pub mod dependabot_change;
 pub mod entry_pattern;
 pub mod old_version;
 
+pub fn extract_markdown_links(text: &str) -> Vec<(&str, &str)> {
+    let mut links = Vec::new();
+    let mut rest = text;
+
+    while let Some(start_bracket) = rest.find('[') {
+        let after_start = &rest[start_bracket + 1..];
+        if let Some(end_bracket) = after_start.find(']') {
+            let label = &after_start[..end_bracket];
+            let after_bracket = &after_start[end_bracket + 1..];
+            if let Some(stripped) = after_bracket.strip_prefix('(') {
+                if let Some(end_paren) = stripped.find(')') {
+                    let url = &stripped[..end_paren];
+                    links.push((label.trim(), url.trim()));
+                    rest = &stripped[end_paren + 1..];
+                    continue;
+                }
+            }
+        }
+        rest = after_start;
+    }
+
+    links
+}
+
+fn is_identifier_char(c: char) -> bool {
+    c.is_alphanumeric() || matches!(c, '_' | '-' | '/' | '@')
+}
+
+fn is_boundary_match(label: &str, dep_name: &str) -> bool {
+    if dep_name.is_empty() || label.len() < dep_name.len() {
+        return false;
+    }
+
+    let mut start = 0;
+    while let Some(rel_pos) = label[start..].find(dep_name) {
+        let match_start = start + rel_pos;
+        let match_end = match_start + dep_name.len();
+
+        let prev_ok = match_start == 0
+            || label[..match_start]
+                .chars()
+                .last()
+                .is_some_and(|c| !is_identifier_char(c));
+
+        let next_ok = match_end == label.len()
+            || label[match_end..]
+                .chars()
+                .next()
+                .is_some_and(|c| !is_identifier_char(c));
+
+        if prev_ok && next_ok {
+            return true;
+        }
+
+        let next_char_len = label[match_start..]
+            .chars()
+            .next()
+            .map_or(1, |c| c.len_utf8());
+        start = match_start + next_char_len;
+    }
+
+    false
+}
+
 pub fn parse_body(body: &str) -> Vec<DependabotChange<'_>> {
-    let changes = parse_changes(body);
-    for change in &changes {
+    let mut changes = parse_changes(body);
+    let links = extract_markdown_links(body);
+
+    for change in &mut changes {
+        let dep_name = change.dep_name();
+        let matched_url = links
+            .iter()
+            .find(|&&(label, _)| label.trim().trim_matches('`') == dep_name)
+            .or_else(|| {
+                links
+                    .iter()
+                    .find(|&&(label, _)| is_boundary_match(label, dep_name))
+            })
+            .map(|&(_, url)| url);
+
+        if let Some(url) = matched_url {
+            change.set_url(url);
+        }
         log::debug!("{change:?}");
     }
     changes
@@ -61,12 +141,7 @@ pub fn format_changes(
         if i > 0 {
             result.push_str(entry_separator.as_str());
         }
-        let formatted = entry_pattern.format(
-            change.name,
-            change.old_version(),
-            change.new_version,
-            markdown_pull_request_link,
-        );
+        let formatted = entry_pattern.format_change(change, markdown_pull_request_link);
         let trimmed = formatted.trim_end_matches(['\r', '\n']);
         result.push_str(trimmed);
     }
@@ -86,12 +161,7 @@ pub fn get_formatted_changes(
     let newline = entry_separator.newline();
     let mut new_changes = Vec::new();
     for change in changes {
-        let entry = entry_pattern.format(
-            change.name,
-            change.old_version(),
-            change.new_version,
-            markdown_pull_request_link,
-        );
+        let entry = entry_pattern.format_change(change, markdown_pull_request_link);
         let trimmed_entry = entry.trim_end_matches(['\r', '\n']);
         let mut already_exists = false;
         for line in abs_h3_contents.lines() {
@@ -484,5 +554,83 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             formatted_single,
             "- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
         );
+    }
+
+    #[test]
+    fn test_parse_body_clap_and_clap_complete_link_matching() {
+        let pr_body = r"Bumps the cargo_dependencies group with 2 updates: [clap](https://github.com/clap-rs/clap) and [clap_complete](https://github.com/clap-rs/clap_complete).
+
+Updates `clap` from 4.5.27 to 4.5.28
+
+Updates `clap_complete` from 4.5.42 to 4.5.44
+";
+        let changes = parse_body(pr_body);
+        assert_eq!(changes.len(), 2);
+        assert_eq!(changes[0].name, "clap");
+        assert_eq!(
+            changes[0].dep_url(),
+            Some("https://github.com/clap-rs/clap")
+        );
+        assert_eq!(changes[1].name, "clap_complete");
+        assert_eq!(
+            changes[1].dep_url(),
+            Some("https://github.com/clap-rs/clap_complete")
+        );
+    }
+
+    #[test]
+    fn test_parse_body_clap_and_clap_complete_reversed_link_order() {
+        let pr_body = r"Bumps the cargo_dependencies group with 2 updates: [clap_complete](https://github.com/clap-rs/clap_complete) and [clap](https://github.com/clap-rs/clap).
+
+Updates `clap` from 4.5.27 to 4.5.28
+
+Updates `clap_complete` from 4.5.42 to 4.5.44
+";
+        let changes = parse_body(pr_body);
+        assert_eq!(changes.len(), 2);
+        assert_eq!(changes[0].name, "clap");
+        assert_eq!(
+            changes[0].dep_url(),
+            Some("https://github.com/clap-rs/clap")
+        );
+        assert_eq!(changes[1].name, "clap_complete");
+        assert_eq!(
+            changes[1].dep_url(),
+            Some("https://github.com/clap-rs/clap_complete")
+        );
+    }
+
+    #[test]
+    fn test_parse_body_clap_does_not_match_clap_complete_url() {
+        let pr_body = r"Bumps the cargo_dependencies group: [clap_complete](https://github.com/clap-rs/clap_complete).
+
+Updates `clap` from 4.5.27 to 4.5.28
+
+Updates `clap_complete` from 4.5.42 to 4.5.44
+";
+        let changes = parse_body(pr_body);
+        assert_eq!(changes.len(), 2);
+        assert_eq!(changes[0].name, "clap");
+        assert_eq!(changes[0].dep_url(), None);
+        assert_eq!(changes[1].name, "clap_complete");
+        assert_eq!(
+            changes[1].dep_url(),
+            Some("https://github.com/clap-rs/clap_complete")
+        );
+    }
+
+    #[test]
+    fn test_parse_body_multi_byte_utf8_boundary_advance() {
+        // Label contains an initial rejected occurrence (preceded by an identifier character '_')
+        // followed by a valid boundary occurrence.
+        // Slicing by byte increment (+1) panics if dep_name starts with a multi-byte UTF-8 character.
+        let pr_body = r"Bumps group: [my_🦀crate and 🦀crate](https://example.com/crate).
+
+Updates `🦀crate` from 1.0.0 to 1.1.0
+";
+        let changes = parse_body(pr_body);
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].name, "🦀crate");
+        assert_eq!(changes[0].dep_url(), Some("https://example.com/crate"));
     }
 }

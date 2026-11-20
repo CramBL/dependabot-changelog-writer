@@ -231,25 +231,30 @@ pub fn find_existing_dependency_lines_to_replace(
             if seen_changes.contains(&change.name) {
                 continue; // Skip if this change has already been matched
             }
-            if let Some(name_pos) = line.find(change.name) {
+            let dep_name = change.dep_name();
+            if let Some(name_pos) = line.find(dep_name) {
                 // We might have a partial match so we need to ensure it's not a match
                 // on e.g. 'clap' in 'clap_complete'
-                let end_of_name_pos = name_pos + change.name.len();
+                let end_of_name_pos = name_pos + dep_name.len();
                 const VALID_SURROUNDING_CHARS_IF_EQ: [char; 3] = ['`', '_', '*'];
-                const EXTRA_VALID_POST_CHARS: [char; 2] = [':', '→'];
+                const EXTRA_VALID_POST_CHARS: [char; 3] = [':', '→', ']'];
 
+                let mut next_must_match = None;
                 let valid_boundary = {
-                    let mut next_must_match = None;
-                    let pre_char_ok = if let Some(prev_char) = line.chars().nth(name_pos - 1) {
+                    let pre_char_ok = if name_pos == 0 {
+                        true
+                    } else if let Some(prev_char) = line[..name_pos].chars().last() {
                         if VALID_SURROUNDING_CHARS_IF_EQ.contains(&prev_char) {
                             next_must_match = Some(prev_char);
                         }
-                        prev_char.is_whitespace() || next_must_match.is_some()
+                        prev_char.is_whitespace() || prev_char == '[' || next_must_match.is_some()
                     } else {
                         true
                     };
 
-                    let post_char_ok = if let Some(next_char) = line.chars().nth(end_of_name_pos) {
+                    let post_char_ok = if let Some(next_char) =
+                        line[end_of_name_pos..].chars().next()
+                    {
                         if let Some(must_match) = next_must_match {
                             must_match == next_char
                         } else {
@@ -263,8 +268,26 @@ pub fn find_existing_dependency_lines_to_replace(
                 };
 
                 if valid_boundary {
+                    // Skip closing delimiter if present
+                    let mut after_name_pos = end_of_name_pos;
+                    if let Some(must_match) = next_must_match {
+                        if line[after_name_pos..].starts_with(must_match) {
+                            after_name_pos += must_match.len_utf8();
+                        }
+                    }
+                    if line[after_name_pos..].starts_with("](") {
+                        if let Some(close_paren) = line[after_name_pos..].find(')') {
+                            after_name_pos += close_paren + 1;
+                        }
+                    }
+                    if let Some(first_char) = line[after_name_pos..].chars().next() {
+                        if VALID_SURROUNDING_CHARS_IF_EQ.contains(&first_char) {
+                            after_name_pos += first_char.len_utf8();
+                        }
+                    }
+
                     // Parse old version from semver or SHA1
-                    let curr_line = &line[end_of_name_pos..];
+                    let curr_line = &line[after_name_pos..];
                     if let Some(old_ver) = find_old_ver_from_line(curr_line) {
                         log::trace!(
                             "Found old version: '{old_ver}' from current line: '{curr_line}'"
@@ -583,5 +606,40 @@ mod tests {
         // line_len includes the entry line plus the trailing blank line (35 bytes in UTF-8)
         assert_eq!(to_replace[0].line_len, 35);
         assert_eq!(changes[0].old_version(), "0.11.5");
+    }
+
+    #[test]
+    fn test_find_existing_dependencies_to_replace_markdown_links() {
+        let changelog = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- [`actions/checkout`](https://github.com/actions/checkout): 3.0.0 → 4.0.0 ([#1](https://github.com/user/repo/pull/1))
+- [ubi9/ubi](https://catalog.redhat.com/software/containers/ubi9/ubi): 9.4.0 → 9.5.0
+"##;
+        let mut changes = vec![
+            DependabotChange::new("actions/checkout", "4.0.0", "4.1.0")
+                .with_url("https://github.com/actions/checkout"),
+            DependabotChange::new("ubi9/ubi", "9.5.0", "9.6.0"),
+        ];
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
+
+        assert_str_eq!(changes[0].old_version(), "3.0.0");
+        assert_str_eq!(changes[1].old_version(), "9.4.0");
+        assert_eq!(to_replace.len(), 2);
+        assert_eq!(
+            &changelog[to_replace[0].line_start..to_replace[0].line_start + to_replace[0].line_len],
+            "- [`actions/checkout`](https://github.com/actions/checkout): 3.0.0 → 4.0.0 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+        assert_eq!(
+            &changelog[to_replace[1].line_start..to_replace[1].line_start + to_replace[1].line_len],
+            "- [ubi9/ubi](https://catalog.redhat.com/software/containers/ubi9/ubi): 9.4.0 → 9.5.0\n"
+        );
     }
 }

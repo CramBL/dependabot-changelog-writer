@@ -74,7 +74,11 @@ jobs:
         # Uses [dep], [old], [new], [pr-link] as placeholder tokens for dependency name, old version,
         # new version, and pull request link respectively.
         #
-        # Tokens must appear in order: [dep], [old], [new].
+        # Tokens must appear in order: [dep] (or [dep-name]), [old], [new].
+        #
+        # The [dep-url] token is optional and can be used with [dep-name] to construct
+        # custom clickable dependency links, e.g. '[`[dep-name]`]([dep-url])'.
+        # If the dependency URL is absent, it falls back to inline code '`[dep-name]`'.
         #
         # The [pr-link] token is optional and may be specified at any position.
         #
@@ -82,6 +86,7 @@ jobs:
         # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
         # - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
         # - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
+        # - Pattern: '[`[dep-name]`]([dep-url]): [old] → [new]' produces '[`actions/checkout`](https://github.com/actions/checkout): 3 → 4'
         # default: '`[dep]`: [old] → [new] ([pr-link])'
         changelog-entry-pattern: ''
 
