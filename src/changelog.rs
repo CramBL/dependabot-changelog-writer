@@ -16,6 +16,7 @@ pub fn add_changes_to_changelog_contents(
     duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: &VersionHeader,
     section_header: &str,
+    sub_section_header: &str,
 ) {
     let pr_link_len =
         markdown_pull_request_link.len() * entry_pattern.pull_request_link_token_occurrences();
@@ -24,9 +25,15 @@ pub fn add_changes_to_changelog_contents(
     });
 
     let mut h3_header = format!("### {section_header}\n");
+    let list_header = format!("- {sub_section_header}\n");
+
     // Reserve for the new changelog entry to avoid the worst case of allocating
     // the size of the existing content
-    changelog_content.reserve(changes_formatted_len + h3_header.len() + 4); // +4 for the worst case of adding 4 newlines
+    let mut reserve_len = changes_formatted_len + h3_header.len() + 4; // +4 for the worst case of adding 4 newlines
+    if !sub_section_header.is_empty() {
+        reserve_len += list_header.len();
+    }
+    changelog_content.reserve(reserve_len);
 
     let change_log_str_capacity = changelog_content.capacity();
 
@@ -40,7 +47,20 @@ pub fn add_changes_to_changelog_contents(
         parse::find_existing_h3_insert_position(&changelog_content[h2_insert_pos..], section_header)
     {
         let abs_existing_h3_start = h2_insert_pos + existing_h3_rel_start;
-        let abs_existing_h3_insert_pos = h2_insert_pos + existing_h3_rel_insert_pos;
+        let mut abs_existing_h3_insert_pos = h2_insert_pos + existing_h3_rel_insert_pos;
+
+        if !sub_section_header.is_empty() {
+            if let Some((_, sub_section_insert_pos)) = parse::find_existing_sub_section_insert_position(
+                &changelog_content[abs_existing_h3_start..abs_existing_h3_insert_pos],
+                sub_section_header,
+            ) {
+                abs_existing_h3_insert_pos = abs_existing_h3_start + sub_section_insert_pos;
+            } else {
+                changelog_content.insert_str(abs_existing_h3_insert_pos, &list_header);
+                abs_existing_h3_insert_pos += list_header.len();
+            }
+        }
+
         log::debug!(
             "abs_existing_h3_start={abs_existing_h3_start}, abs_existing_h3_insert_pos={abs_existing_h3_insert_pos}"
         );
@@ -116,6 +136,10 @@ pub fn add_changes_to_changelog_contents(
             h3_header.insert(0, '\n');
         }
         h3_header.push('\n');
+
+        if !sub_section_header.is_empty() {
+            h3_header.push_str(&list_header);
+        }
         h3_header.push_str(&changes_md);
         h3_header.push('\n');
         changelog_content.insert_str(h2_insert_pos + new_h3_insert_pos, &h3_header);
@@ -143,6 +167,7 @@ mod tests {
         let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r#"# Changelog
 
 ## [Unreleased]
@@ -177,6 +202,7 @@ mod tests {
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
 
@@ -189,6 +215,7 @@ mod tests {
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -204,6 +231,7 @@ mod tests {
         let changes = EXAMPLE_CHANGES.to_vec();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r#"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -244,6 +272,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
 
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
@@ -256,6 +285,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -271,6 +301,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let changes = EXAMPLE_CHANGES.to_vec();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r#"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -301,6 +332,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
 
@@ -312,6 +344,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -330,6 +363,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r##"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -363,6 +397,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
 
@@ -374,6 +409,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -394,6 +430,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r##"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -428,6 +465,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Append,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
 
@@ -439,6 +477,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Append,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -459,6 +498,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let entry_pattern = EntryPattern::default();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r##"# Changelog
 
 All notable changes to this project will be documented in this file.
@@ -491,6 +531,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
 
@@ -502,6 +543,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -517,6 +559,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let changes = EXAMPLE_CHANGES_SMALL_WITH_SHA1.to_vec();
         let version_header = VersionHeader::new("0.1.0".into());
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r##"# Changelog
 
 ## [Unreleased]
@@ -542,6 +585,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(&changelog_content, expect_final_changelog_contents);
 
@@ -553,6 +597,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -568,6 +613,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let changes = CHANGES_ISSUE_51.to_vec();
         let version_header = VersionHeader::Unreleased;
         let section_header = "Dependencies";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r##"# Changelog
 
 ## [unreleased]
@@ -667,6 +713,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -682,6 +729,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -695,10 +743,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     fn test_add_changes_to_changelog_contents_issues90() -> TestResult {
         let mut changelog_content = ISSUE_90_CHANGELOG.to_owned();
         let entry_pattern =
-            EntryPattern::new("Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_")?;
+            EntryPattern::new("Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_", "")?;
         let changes = CHANGES_ISSUE_90.to_vec();
         let version_header = VersionHeader::Unreleased;
         let section_header = "Changed";
+        let sub_section_header = "";
         let expect_final_changelog_contents = r##"# Foo Workflows for GitHub Actions Changelog
 
 <!-- markdownlint-disable-next-line MD052 -->
@@ -743,6 +792,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_str_eq!(
             &changelog_content,
@@ -760,10 +810,138 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
+            sub_section_header,
         );
         assert_ne!(
             changelog_content, expect_final_changelog_contents,
             "UNEXPECTEDLY IDEMPOTENT, FEATURE NOT SUPPORTED!"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_add_changes_to_changelog_content_small_changelog_with_subsection_2spaces() -> TestResult {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let entry_pattern = EntryPattern::new(EntryPattern::DEFAULT_PATTERN, "2-spaces")?;
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Changed";
+        let sub_section_header = "Dependencies";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Some behaviour
+- Dependencies
+  - `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+  - `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+  - `semver`: 1.0.23 → 1.0.24 ([#1](https://github.com/user/repo/pull/1))
+  - `env_logger`: 0.11.5 → 0.11.6 ([#1](https://github.com/user/repo/pull/1))
+  - `zip`: 2.2.1 → 2.2.2 ([#1](https://github.com/user/repo/pull/1))
+  - `wasm-bindgen-futures`: 0.4.47 → 0.4.49 ([#1](https://github.com/user/repo/pull/1))
+  - `web-sys`: 0.3.74 → 0.3.76 ([#1](https://github.com/user/repo/pull/1))
+  - `thiserror`: 2.0.4 → 2.0.9 ([#1](https://github.com/user/repo/pull/1))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+            sub_section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+            sub_section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_add_changes_to_changelog_contents_empty_with_subsection_2spaces() -> TestResult {
+        let mut changelog_content = EXAMPLE_EMPTY_CHANGELOG_CONTENTS.to_owned();
+        let changes = EXAMPLE_CHANGES.to_vec();
+        let entry_pattern = EntryPattern::new(EntryPattern::DEFAULT_PATTERN, "2-spaces")?;
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Changed";
+        let sub_section_header = "Dependencies";
+        let expect_final_changelog_contents = r#"# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+
+- Dependencies
+  - `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+  - `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+  - `semver`: 1.0.23 → 1.0.24 ([#1](https://github.com/user/repo/pull/1))
+  - `env_logger`: 0.11.5 → 0.11.6 ([#1](https://github.com/user/repo/pull/1))
+  - `zip`: 2.2.1 → 2.2.2 ([#1](https://github.com/user/repo/pull/1))
+  - `wasm-bindgen-futures`: 0.4.47 → 0.4.49 ([#1](https://github.com/user/repo/pull/1))
+  - `web-sys`: 0.3.74 → 0.3.76 ([#1](https://github.com/user/repo/pull/1))
+  - `thiserror`: 2.0.4 → 2.0.9 ([#1](https://github.com/user/repo/pull/1))
+
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+            sub_section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+            sub_section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent!"
         );
 
         Ok(())
