@@ -928,6 +928,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     }
 
     #[test]
+    fn test_add_changes_dep_name_and_dep_url_tokens() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
+        let changes = vec![
+            DependabotChange::new("actions/checkout", "3.0.0", "4.0.0")
+                .with_url("https://github.com/actions/checkout"),
+            DependabotChange::new("ubi9/ubi", "9.4.0", "9.5.0"),
+        ];
+        let pattern = "[`[dep-name]`]([dep-url]): [old] → [new] ([pr-link])";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Some behaviour
+
+### Dependencies
+
+- [`actions/checkout`](https://github.com/actions/checkout): 3.0.0 → 4.0.0 ([#1](https://github.com/user/repo/pull/1))
+- `ubi9/ubi`: 9.4.0 → 9.5.0 ([#1](https://github.com/user/repo/pull/1))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::default(),
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::default(),
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent with dep-name and dep-url tokens!"
+        );
+    }
+
+    #[test]
     fn test_add_changes_blank_line_separator_existing_section() {
         let mut changelog_content = r#"# Changelog
 
