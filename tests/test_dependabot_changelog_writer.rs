@@ -117,3 +117,144 @@ HINT: Try removing the '###' prefix";
 
     Ok(())
 }
+
+#[test]
+pub fn test_diff_blank_line_entry_separator() -> TestResult {
+    let changelog_path = "./test_data/changelogs/ISSUE_51.md";
+    let changes_pattern = "`[dep]`: [old] → [new] ([pr-link])";
+    let duplicate_entry_strategy = "overwrite";
+    let commit_msg = "Updated changelog with updated dependencies";
+    let changelog_section = "unreleased";
+    let changelog_header3 = "Dependencies";
+    let entry_separator = "\n\n";
+    let dry_run = "dry-run";
+
+    let mut cmd = Command::cargo_bin(BIN_NAME)?;
+    cmd.env("USE_FAKE_EVENT_JSON", "test_data/event_json/ISSUE_51.json")
+        .env("RUST_LOG", "debug")
+        .args([
+            changelog_path,
+            changes_pattern,
+            duplicate_entry_strategy,
+            commit_msg,
+            changelog_section,
+            changelog_header3,
+            entry_separator,
+            dry_run,
+        ]);
+
+    let out = cmd.output()?;
+    let diff = get_diff(&out);
+    println!("{diff}");
+
+    let expect_diff_lines = [
+        "%%%%% START OF DIFF %%%%%",
+        " # Changelog",
+        " ",
+        " ## [unreleased]",
+        " ",
+        " ### Dependencies",
+        " ",
+        "-- `clap`: 4.5.26 → 4.5.27 ([#52](https://github.com/CramBL/fidelityfetch/pull/52))",
+        "+- `clap`: 4.5.26 → 4.5.28 ([#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        "+",
+        "+- `clap_complete`: 4.5.42 → 4.5.44 ([#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        "+",
+        "+- `mdns-sd`: 0.13.1 → 0.13.2 ([#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        "+",
+        "+- `strum`: 0.26.3 → 0.27.0 ([#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        " ",
+    ];
+
+    assert!(diff.starts_with("%%%%% START OF DIFF %%%%%"));
+    let actual_lines: Vec<&str> = diff
+        .lines()
+        .take_while(|line| !line.starts_with(" ## [0.4.2]"))
+        .collect();
+    assert_eq!(
+        expect_diff_lines.len(),
+        actual_lines.len(),
+        "Number of diff lines mismatch. Expected {} lines, got {}",
+        expect_diff_lines.len(),
+        actual_lines.len()
+    );
+    for (i, (&expected, &actual)) in expect_diff_lines
+        .iter()
+        .zip(actual_lines.iter())
+        .enumerate()
+    {
+        assert_str_eq!(expected, actual, "line #{i} mismatch");
+    }
+    assert!(out.status.success());
+
+    Ok(())
+}
+
+#[test]
+pub fn test_diff_escaped_pr_and_dep_tokens() -> TestResult {
+    let changelog_path = "./test_data/changelogs/ISSUE_51.md";
+    let changes_pattern = "[`[dep-name]`]([dep-url]): [old] → [new] ([\\#[pr-number]]([pr-url]))";
+    let duplicate_entry_strategy = "overwrite";
+    let commit_msg = "Updated changelog with updated dependencies";
+    let changelog_section = "unreleased";
+    let changelog_header3 = "Dependencies";
+    let entry_separator = "\n";
+    let dry_run = "dry-run";
+
+    let mut cmd = Command::cargo_bin(BIN_NAME)?;
+    cmd.env("USE_FAKE_EVENT_JSON", "test_data/event_json/ISSUE_51.json")
+        .env("RUST_LOG", "debug")
+        .args([
+            changelog_path,
+            changes_pattern,
+            duplicate_entry_strategy,
+            commit_msg,
+            changelog_section,
+            changelog_header3,
+            entry_separator,
+            dry_run,
+        ]);
+
+    let out = cmd.output()?;
+    let diff = get_diff(&out);
+    println!("{diff}");
+
+    let expect_diff_lines = [
+        "%%%%% START OF DIFF %%%%%",
+        " # Changelog",
+        " ",
+        " ## [unreleased]",
+        " ",
+        " ### Dependencies",
+        " ",
+        "-- `clap`: 4.5.26 → 4.5.27 ([#52](https://github.com/CramBL/fidelityfetch/pull/52))",
+        r"+- [`clap`](https://github.com/clap-rs/clap): 4.5.26 → 4.5.28 ([\#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        r"+- [`clap_complete`](https://github.com/clap-rs/clap): 4.5.42 → 4.5.44 ([\#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        r"+- [`mdns-sd`](https://github.com/keepsimple1/mdns-sd): 0.13.1 → 0.13.2 ([\#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        r"+- [`strum`](https://github.com/Peternator7/strum): 0.26.3 → 0.27.0 ([\#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1))",
+        " ",
+    ];
+
+    assert!(diff.starts_with("%%%%% START OF DIFF %%%%%"));
+    let actual_lines: Vec<&str> = diff
+        .lines()
+        .take_while(|line| !line.starts_with(" ## [0.4.2]"))
+        .collect();
+    assert_eq!(
+        expect_diff_lines.len(),
+        actual_lines.len(),
+        "Number of diff lines mismatch. Expected {} lines, got {}",
+        expect_diff_lines.len(),
+        actual_lines.len()
+    );
+    for (i, (&expected, &actual)) in expect_diff_lines
+        .iter()
+        .zip(actual_lines.iter())
+        .enumerate()
+    {
+        assert_str_eq!(expected, actual, "line #{i} mismatch");
+    }
+    assert!(out.status.success());
+
+    Ok(())
+}

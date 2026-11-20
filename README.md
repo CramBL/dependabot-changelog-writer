@@ -74,16 +74,31 @@ jobs:
         # Uses [dep], [old], [new], [pr-link] as placeholder tokens for dependency name, old version,
         # new version, and pull request link respectively.
         #
-        # Tokens must appear in order: [dep], [old], [new].
+        # Alternatively, separate tokens are available:
+        # - [dep-name]: dependency name without markdown link formatting
+        # - [dep-url]: repository URL for the dependency (when available)
+        # - [pr-number]: pull request number
+        # - [pr-url]: pull request URL
         #
-        # The [pr-link] token is optional and may be specified at any position.
+        # Tokens must appear in order: [dep] (or [dep-name]), [old], [new].
+        #
+        # The [pr-link], [pr-number], [pr-url], and [dep-url] tokens are optional and may be specified at any position.
         #
         # Examples:
         # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
         # - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
         # - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
+        # - Escaped PR reference: 'Bump [dep] from [old] to [new] ([\#[pr-number]]([pr-url]))' produces 'Bump npm from 1.0 to 1.2 ([\#1](https://github.com/user/repo/pull/1))'
+        # - Clickable inline code: '[`[dep-name]`]([dep-url]): [old] → [new] ([pr-link])' produces '[`actions/checkout`](https://github.com/actions/checkout): 3 → 4 ([#1](https://github.com/user/repo/pull/1))'
+        #   (If dep-url is unavailable, markdown links around it are unwrapped gracefully to avoid broken links)
         # default: '`[dep]`: [old] → [new] ([pr-link])'
         changelog-entry-pattern: ''
+
+        # Separator between changelog entries.
+        # Default is '\n' (single newline). To configure a blank line between entries, set:
+        # entry-separator: '\n\n'
+        #
+        # Supported values: '\n', '\n\n', '\r\n', '\r\n\r\n'.
 
         # Strategy for handling duplicate dependency entries in changelog's unreleased section.
         # When a Dependabot PR updates dependency FOO from B → C, but an unreleased entry
