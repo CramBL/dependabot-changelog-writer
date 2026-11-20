@@ -990,6 +990,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     }
 
     #[test]
+    fn test_add_changes_escaped_pr_number_token() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("chrono", "0.4.38", "0.4.39"),
+        ];
+        let pattern = r"`[dep]`: [old] → [new] ([\#[pr-number]]([pr-url]))";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let pr_link = "[#867](https://github.com/example/repo/pull/867)";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Some behaviour
+
+### Dependencies
+
+- `serde`: 1.0.215 → 1.0.216 ([\#867](https://github.com/example/repo/pull/867))
+- `chrono`: 0.4.38 → 0.4.39 ([\#867](https://github.com/example/repo/pull/867))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            pr_link,
+            &entry_pattern,
+            EntrySeparator::default(),
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            pr_link,
+            &entry_pattern,
+            EntrySeparator::default(),
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent with escaped pr-number token!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_blank_line_separator_escaped_pr_number_token() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("chrono", "0.4.38", "0.4.39"),
+        ];
+        let pattern = r"`[dep]`: [old] → [new] ([\#[pr-number]]([pr-url]))";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let pr_link = "[#867](https://github.com/example/repo/pull/867)";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Some behaviour
+
+### Dependencies
+
+- `serde`: 1.0.215 → 1.0.216 ([\#867](https://github.com/example/repo/pull/867))
+
+- `chrono`: 0.4.38 → 0.4.39 ([\#867](https://github.com/example/repo/pull/867))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            pr_link,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            pr_link,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent with blank-line separator and custom PR tokens!"
+        );
+    }
+
+    #[test]
     fn test_add_changes_blank_line_separator_existing_section() {
         let mut changelog_content = r#"# Changelog
 
