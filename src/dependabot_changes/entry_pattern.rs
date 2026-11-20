@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use crate::event_json::PullRequestInfo;
+
 #[derive(Debug)]
 pub struct EntryPattern {
     cooked_pattern: String,
@@ -24,6 +26,8 @@ impl EntryPattern {
     pub const OLD_VERSION_TOKEN: &str = "[old]";
     pub const NEW_VERSION_TOKEN: &str = "[new]";
     pub const PULL_REQUEST_LINK_TOKEN: &str = "[pr-link]";
+    pub const PULL_REQUEST_NUMBER_TOKEN: &str = "[pr-number]";
+    pub const PULL_REQUEST_URL_TOKEN: &str = "[pr-url]";
 
     pub const ORDERED_TOKENS: &[&str] = &[
         Self::DEPENDENCY_TOKEN,
@@ -35,6 +39,8 @@ impl EntryPattern {
     pub const OLD_VERSION_TOKEN_HARDENED: &str = "{{old}}";
     pub const NEW_VERSION_TOKEN_HARDENED: &str = "{{new}}";
     pub const PULL_REQUEST_LINK_TOKEN_HARDENED: &str = "{{pr-link}}";
+    pub const PULL_REQUEST_NUMBER_TOKEN_HARDENED: &str = "{{pr-number}}";
+    pub const PULL_REQUEST_URL_TOKEN_HARDENED: &str = "{{pr-url}}";
 
     /// # Arguments
     ///
@@ -56,7 +62,8 @@ impl EntryPattern {
             );
         }
 
-        let pr_link_token_occurrences = pattern.matches(Self::PULL_REQUEST_LINK_TOKEN).count();
+        let pr_link_token_occurrences = pattern.matches(Self::PULL_REQUEST_LINK_TOKEN).count()
+            + pattern.matches(Self::PULL_REQUEST_URL_TOKEN).count();
 
         let mut last_index = 0;
 
@@ -89,6 +96,14 @@ impl EntryPattern {
             .replace(
                 Self::PULL_REQUEST_LINK_TOKEN,
                 Self::PULL_REQUEST_LINK_TOKEN_HARDENED,
+            )
+            .replace(
+                Self::PULL_REQUEST_NUMBER_TOKEN,
+                Self::PULL_REQUEST_NUMBER_TOKEN_HARDENED,
+            )
+            .replace(
+                Self::PULL_REQUEST_URL_TOKEN,
+                Self::PULL_REQUEST_URL_TOKEN_HARDENED,
             );
 
         let mut cooked_pattern = Self::LINE_PREFIX.to_owned();
@@ -99,7 +114,12 @@ impl EntryPattern {
             - Self::DEPENDENCY_TOKEN_HARDENED.len()
             - Self::OLD_VERSION_TOKEN_HARDENED.len()
             - Self::NEW_VERSION_TOKEN_HARDENED.len()
-            - pr_link_token_occurrences * Self::PULL_REQUEST_LINK_TOKEN_HARDENED.len();
+            - pattern.matches(Self::PULL_REQUEST_LINK_TOKEN).count()
+                * Self::PULL_REQUEST_LINK_TOKEN_HARDENED.len()
+            - pattern.matches(Self::PULL_REQUEST_NUMBER_TOKEN).count()
+                * Self::PULL_REQUEST_NUMBER_TOKEN_HARDENED.len()
+            - pattern.matches(Self::PULL_REQUEST_URL_TOKEN).count()
+                * Self::PULL_REQUEST_URL_TOKEN_HARDENED.len();
 
         Ok(Self {
             cooked_pattern,
@@ -118,12 +138,12 @@ impl EntryPattern {
         self.pr_link_token_occurrences
     }
 
-    pub fn format(
+    pub fn format_with_pr_info(
         &self,
         dependency: &str,
         old_version: &str,
         new_version: &str,
-        markdown_pull_request_link: &str,
+        pr_info: &PullRequestInfo,
     ) -> String {
         self.cooked_pattern
             .replace(Self::DEPENDENCY_TOKEN_HARDENED, dependency)
@@ -131,8 +151,21 @@ impl EntryPattern {
             .replace(Self::NEW_VERSION_TOKEN_HARDENED, new_version)
             .replace(
                 Self::PULL_REQUEST_LINK_TOKEN_HARDENED,
-                markdown_pull_request_link,
+                &pr_info.markdown_link,
             )
+            .replace(Self::PULL_REQUEST_NUMBER_TOKEN_HARDENED, &pr_info.number)
+            .replace(Self::PULL_REQUEST_URL_TOKEN_HARDENED, &pr_info.url)
+    }
+
+    pub fn format(
+        &self,
+        dependency: &str,
+        old_version: &str,
+        new_version: &str,
+        markdown_pull_request_link: &str,
+    ) -> String {
+        let pr_info = PullRequestInfo::from_markdown_link(markdown_pull_request_link);
+        self.format_with_pr_info(dependency, old_version, new_version, &pr_info)
     }
 }
 
@@ -246,6 +279,38 @@ mod tests {
         assert_str_eq!(
             result.unwrap_err().to_string(),
             "Missing entry pattern. Expected template string such as: '[dep]: [old] → [new] ([pr-link])'"
+        );
+    }
+
+    #[test]
+    fn test_pr_number_and_pr_url_tokens() {
+        let pattern = "Bump [dep] from [old] to [new] ([#[pr-number]]([pr-url]))";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let pr_info = PullRequestInfo::new(
+            "867",
+            "https://github.com/example/repo/pull/867",
+            "[#867](https://github.com/example/repo/pull/867)",
+        );
+        let formatted = entry_pattern.format_with_pr_info("serde", "1.0.0", "1.0.1", &pr_info);
+        assert_str_eq!(
+            formatted,
+            "- Bump serde from 1.0.0 to 1.0.1 ([#867](https://github.com/example/repo/pull/867))\n"
+        );
+    }
+
+    #[test]
+    fn test_pr_number_escaped_hash() {
+        let pattern = r"[\#[pr-number]]([pr-url]): [dep] [old] → [new]";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let pr_info = PullRequestInfo::new(
+            "867",
+            "https://github.com/example/repo/pull/867",
+            "[#867](https://github.com/example/repo/pull/867)",
+        );
+        let formatted = entry_pattern.format_with_pr_info("serde", "1.0.0", "1.0.1", &pr_info);
+        assert_str_eq!(
+            formatted,
+            "- [\\#867](https://github.com/example/repo/pull/867): serde 1.0.0 → 1.0.1\n"
         );
     }
 }

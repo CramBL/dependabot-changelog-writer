@@ -412,7 +412,7 @@ mod tests {
 
         let expect_h2_pos = 29;
 
-        let insert_pos = find_h2_insert_position(&changelog_content, &version_header).unwrap();
+        let insert_pos = find_h2_insert_position(changelog_content, &version_header).unwrap();
         assert_eq!(insert_pos, expect_h2_pos);
         eprintln!("{}", &changelog_content[..insert_pos - 1]);
         assert!(changelog_content[..insert_pos - 1].ends_with("## [unreleased]"));

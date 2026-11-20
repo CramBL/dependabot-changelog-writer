@@ -21,7 +21,7 @@ const UPDATE_KEYWORDS: [(&str, usize); 2] = [
     (UPDATE_LINE_KEYWORD_B, UPDATE_LINE_KEYWORD_B.len()),
 ];
 
-fn parse_changes(body: &str) -> Vec<DependabotChange> {
+fn parse_changes(body: &str) -> Vec<DependabotChange<'_>> {
     let mut changes = Vec::new();
 
     let mut skip_parsing = false;

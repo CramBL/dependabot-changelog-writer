@@ -77,11 +77,14 @@ jobs:
         # Tokens must appear in order: [dep], [old], [new].
         #
         # The [pr-link] token is optional and may be specified at any position.
+        # Alternatively, [pr-number] and [pr-url] can be used to construct custom links,
+        # e.g. '[\#[pr-number]]([pr-url])' to escape the '#' character in Markdown.
         #
         # Examples:
         # - Pattern: '[dep]: [old] → [new]' produces 'npm: 1.0 → 1.2'
         # - Pattern: 'Bump `[dep]` from [old] to [new]' produces 'Bump `npm` from 1.0 to 1.2'
         # - Pattern: 'Bump [dep] from [old] to [new] ([pr-link])' produces 'Bump npm from 1.0 to 1.2 ([#1](https://github.com/user/repo/pull/1))'
+        # - Pattern: '`[dep]`: [old] → [new] ([\#[pr-number]]([pr-url]))' produces '`npm`: 1.0 → 1.2 ([\#1](https://github.com/user/repo/pull/1))'
         # default: '`[dep]`: [old] → [new] ([pr-link])'
         changelog-entry-pattern: ''
 
