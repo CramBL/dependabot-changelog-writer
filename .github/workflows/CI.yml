@@ -130,10 +130,11 @@ jobs:
         run: cargo run -- \
             "CHANGELOG.md" \
             'Update _[dep]_ from `[old]` to `[new]`. ([pr-link]) _@dependabot_' \
-            'append'
+            'append' \
             "Some commit message" \
             "Unreleased" \
             "section header 3" \
+            '\n' \
             "true"
 
   build:
@@ -187,11 +188,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ github.token }}
         run: ./${{ env.binary_name }} 'CHANGELOG.md' \
-                                    '📝 Update [dep] from [old] to🚀 [new]🍄'
-                                    'overwrite'
+                                    '📝 Update [dep] from [old] to🚀 [new]🍄' \
+                                    'overwrite' \
                                     'commit msg' \
                                     'Unreleased' \
                                     'section header 3' \
+                                    '\n' \
                                     'true'
 
   msrv:

@@ -1,18 +1,46 @@
 mod parse;
 
 use crate::{
-    config::{DuplicateEntryStrategy, VersionHeader},
+    config::{DuplicateEntryStrategy, EntrySeparator, VersionHeader},
     dependabot_changes::{
         dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes,
         get_formatted_changes,
     },
 };
 
+/// Maximum extra capacity needed for the `### ` Markdown prefix and all possible surrounding newlines
+/// when creating a new H3 section:
+/// - `### ` prefix (4 bytes)
+/// - Up to 2 leading newlines for section separation (up to 4 bytes with CRLF)
+/// - 1 newline after the section header (up to 2 bytes with CRLF)
+/// - 1 blank line newline after the header (up to 2 bytes with CRLF)
+/// - Up to 2 trailing newlines after changes and section (up to 4 bytes with CRLF)
+///
+/// Total: 4 + 12 = 16 bytes.
+const H3_SECTION_MARKDOWN_OVERHEAD: usize = 16;
+
+/// Heuristic extra capacity safety buffer to prevent reallocation during changelog modifications,
+/// safeguarding the capacity debug assertion.
+const EXTRA_CAPACITY_BUFFER: usize = 128;
+
+const THREE_LF_NEWLINES: &str = "\n\n\n";
+const THREE_LF_NEWLINES_LEN: usize = THREE_LF_NEWLINES.len();
+const ONE_LF_NEWLINE_LEN: usize = "\n".len();
+
+const THREE_CRLF_NEWLINES: &str = "\r\n\r\n\r\n";
+const THREE_CRLF_NEWLINES_LEN: usize = THREE_CRLF_NEWLINES.len();
+const ONE_CRLF_NEWLINE_LEN: usize = "\r\n".len();
+
+const TWO_LF_NEWLINES_LEN: usize = "\n\n".len();
+const TWO_CRLF_NEWLINES_LEN: usize = "\r\n\r\n".len();
+
+#[expect(clippy::too_many_arguments)]
 pub fn add_changes_to_changelog_contents(
     mut changes: Vec<DependabotChange>,
     changelog_content: &mut String,
     markdown_pull_request_link: &str,
     entry_pattern: &EntryPattern,
+    entry_separator: EntrySeparator,
     duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: &VersionHeader,
     section_header: &str,
@@ -23,10 +51,15 @@ pub fn add_changes_to_changelog_contents(
         c.total_len() + entry_pattern.min_len() + pr_link_len + sum
     });
 
-    let mut h3_header = format!("### {section_header}\n");
     // Reserve for the new changelog entry to avoid the worst case of allocating
     // the size of the existing content
-    changelog_content.reserve(changes_formatted_len + h3_header.len() + 4); // +4 for the worst case of adding 4 newlines
+    changelog_content.reserve(
+        changes_formatted_len
+            + section_header.len()
+            + H3_SECTION_MARKDOWN_OVERHEAD
+            + entry_separator.len() * changes.len()
+            + EXTRA_CAPACITY_BUFFER,
+    );
 
     let change_log_str_capacity = changelog_content.capacity();
 
@@ -50,8 +83,11 @@ pub fn add_changes_to_changelog_contents(
             DuplicateEntryStrategy::Overwrite => {
                 let abs_h3_contents =
                     &changelog_content[abs_existing_h3_start..abs_existing_h3_insert_pos];
-                let existing_deps =
-                    parse::find_existing_dependency_lines_to_replace(abs_h3_contents, &mut changes);
+                let existing_deps = parse::find_existing_dependency_lines_to_replace(
+                    abs_h3_contents,
+                    &mut changes,
+                    entry_separator,
+                );
 
                 // Iterate in reverse to go towards to the start of the changelog string
                 // that way the next content we might have to update doesn't change position
@@ -62,12 +98,32 @@ pub fn add_changes_to_changelog_contents(
                         "Removing previous dependency entry: {}",
                         &changelog_content[range_to_remove.clone()]
                     );
+                    let removed_entry = &changelog_content[range_to_remove.clone()];
+                    let expected_newline_count = if entry_separator.is_blank_line() {
+                        // When a blank-line entry separator is configured, if the replaced entry was followed
+                        // by a blank line, that blank line was absorbed into `range_to_remove` so as not to leave
+                        // an orphaned blank line.
+                        // We check the remainder after the first newline using the same `trim().is_empty()` rule
+                        // as the parser, handling any Unicode whitespace or CRLF endings.
+                        match removed_entry.split_once('\n') {
+                            Some((_first_line, remainder))
+                                if !remainder.is_empty()
+                                    && remainder.trim().is_empty()
+                                    && remainder.contains('\n') =>
+                            {
+                                2
+                            }
+                            _ => 1,
+                        }
+                    } else {
+                        // For single-newline separators (both LF and CRLF), the entry range never includes
+                        // an adjacent blank line, so it must always contain exactly one newline.
+                        1
+                    };
                     debug_assert_eq!(
-                        changelog_content[range_to_remove.clone()]
-                            .matches('\n')
-                            .count(),
-                        1,
-                        "Removed previous dependency entry should contain exactly one newline"
+                        removed_entry.matches('\n').count(),
+                        expected_newline_count,
+                        "Removed previous dependency entry should contain exactly {expected_newline_count} newline(s)"
                     );
                     changelog_content.replace_range(range_to_remove.clone(), "");
                     string_offset += range_to_remove.len();
@@ -77,14 +133,21 @@ pub fn add_changes_to_changelog_contents(
 
         let mut changes_insert_pos = abs_existing_h3_insert_pos - string_offset;
         log::debug!("changes_insert_pos={changes_insert_pos}");
-        let three_prev_chars = &changelog_content[changes_insert_pos - 3..changes_insert_pos];
-        if three_prev_chars == "\n\n\n" {
-            // Special handling for the case where the h3 section header already contains
-            // dependency update entries and all those dependencies are also being bumped
-            // by the newly created dependabot PR. This would result in an extra newline and the
-            // start of the section, and one missing at the end. We fix it by shifting the insertion
-            // one character back.
-            changes_insert_pos -= 1;
+        // Special handling for the case where the h3 section header already contained
+        // dependency update entries and all those dependencies are also being bumped
+        // by the newly created dependabot PR. This would result in an extra newline at the
+        // start of the section and one missing at the end. We fix it by shifting the insertion
+        // position one newline back (1 byte for LF, 2 bytes for CRLF).
+        if changes_insert_pos >= THREE_CRLF_NEWLINES_LEN
+            && &changelog_content[changes_insert_pos - THREE_CRLF_NEWLINES_LEN..changes_insert_pos]
+                == THREE_CRLF_NEWLINES
+        {
+            changes_insert_pos -= ONE_CRLF_NEWLINE_LEN;
+        } else if changes_insert_pos >= THREE_LF_NEWLINES_LEN
+            && &changelog_content[changes_insert_pos - THREE_LF_NEWLINES_LEN..changes_insert_pos]
+                == THREE_LF_NEWLINES
+        {
+            changes_insert_pos -= ONE_LF_NEWLINE_LEN;
         }
         log::info!(
             "Inserting changes immediately after the following content: {}",
@@ -94,30 +157,46 @@ pub fn add_changes_to_changelog_contents(
         let abs_h3_contents = &changelog_content[abs_existing_h3_start..changes_insert_pos];
         let changes_markdown = get_formatted_changes(
             abs_h3_contents,
-            changes,
+            &changes,
             entry_pattern,
+            entry_separator,
             markdown_pull_request_link,
         );
         changelog_content.insert_str(changes_insert_pos, &changes_markdown);
     } else {
-        let changes_md = format_changes(changes, entry_pattern, markdown_pull_request_link);
+        let is_crlf = entry_separator.is_crlf() || changelog_content.contains("\r\n");
+        let newline = if is_crlf { "\r\n" } else { "\n" };
+        let changes_md = format_changes(
+            &changes,
+            entry_pattern,
+            entry_separator,
+            markdown_pull_request_link,
+        );
         let new_h3_insert_pos =
             parse::find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
         let insert_pos = h2_insert_pos + new_h3_insert_pos;
 
         // Ensure that we are inserting after 2 newlines
-        // by counting the the newlines in the previous two characters
+        // by counting the newlines in the previous characters
         // and inserting newlines if needed.
-        let prev_two_chars = &changelog_content[insert_pos - 2..insert_pos];
-        let prev_two_newline_count = prev_two_chars
-            .chars()
-            .fold(0, |acc, c| acc + (c == '\n') as u8);
-        for _ in 0..(2 - prev_two_newline_count) {
-            h3_header.insert(0, '\n');
+        let check_len = if is_crlf {
+            TWO_CRLF_NEWLINES_LEN
+        } else {
+            TWO_LF_NEWLINES_LEN
+        };
+        let prev_slice = if insert_pos >= check_len {
+            &changelog_content[insert_pos - check_len..insert_pos]
+        } else {
+            &changelog_content[..insert_pos]
+        };
+        let prev_newline_count = prev_slice.chars().filter(|&c| c == '\n').count();
+        let mut h3_header = format!("### {section_header}{newline}");
+        for _ in 0..(2usize.saturating_sub(prev_newline_count)) {
+            h3_header.insert_str(0, newline);
         }
-        h3_header.push('\n');
+        h3_header.push_str(newline);
         h3_header.push_str(&changes_md);
-        h3_header.push('\n');
+        h3_header.push_str(newline);
         changelog_content.insert_str(h2_insert_pos + new_h3_insert_pos, &h3_header);
     }
 
@@ -174,6 +253,7 @@ mod tests {
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -186,6 +266,7 @@ mod tests {
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -241,6 +322,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -253,6 +335,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -298,6 +381,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -309,6 +393,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -360,6 +445,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -371,6 +457,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -425,6 +512,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Append,
             &version_header,
             section_header,
@@ -436,6 +524,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Append,
             &version_header,
             section_header,
@@ -488,6 +577,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -499,6 +589,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -539,6 +630,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -550,6 +642,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -664,6 +757,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -679,6 +773,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -740,6 +835,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -757,6 +853,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -767,5 +864,474 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn test_add_changes_blank_line_separator_new_section() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("chrono", "0.4.38", "0.4.39"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Some behaviour
+
+### Dependencies
+
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+
+- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent with blank-line separator!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_blank_line_separator_existing_section() {
+        let mut changelog_content = r#"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `clap`: 4.5.26 → 4.5.27
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#
+        .to_owned();
+
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("chrono", "0.4.38", "0.4.39"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `clap`: 4.5.26 → 4.5.27
+
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+
+- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent with blank-line separator on existing section!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_blank_line_separator_overwrite() {
+        let mut changelog_content = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+
+- `env_logger`: 0.11.5 → 0.11.6
+
+- `semver`: 1.0.23 → 1.0.24
+
+### Fix
+
+- Some issue
+"##
+        .to_owned();
+
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("env_logger", "0.11.6", "0.12.0"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+
+- `semver`: 1.0.23 → 1.0.24
+
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+
+- `env_logger`: 0.11.5 → 0.12.0 ([#1](https://github.com/user/repo/pull/1))
+
+### Fix
+
+- Some issue
+"##;
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            expect_final_changelog_contents,
+            "Not idempotent on overwrite with blank-line separator!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_crlf_blank_line_separator_new_section() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.replace('\n', "\r\n");
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("chrono", "0.4.38", "0.4.39"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r#"# Changelog
+
+## [Unreleased]
+
+### Changed
+
+- Some behaviour
+
+### Dependencies
+
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+
+- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))
+
+## [0.1.0]
+
+### Added
+
+- Some features
+"#
+        .replace('\n', "\r\n");
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, &expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            &expect_final_changelog_contents,
+            "Not idempotent with CRLF blank-line separator!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_crlf_blank_line_separator_overwrite() {
+        let changelog_raw = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+
+- `env_logger`: 0.11.5 → 0.11.6
+
+- `semver`: 1.0.23 → 1.0.24
+
+### Fix
+
+- Some issue
+"##;
+        let mut changelog_content = changelog_raw.replace('\n', "\r\n");
+
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("env_logger", "0.11.6", "0.12.0"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+
+- `semver`: 1.0.23 → 1.0.24
+
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+
+- `env_logger`: 0.11.5 → 0.12.0 ([#1](https://github.com/user/repo/pull/1))
+
+### Fix
+
+- Some issue
+"##
+        .replace('\n', "\r\n");
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, &expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            &expect_final_changelog_contents,
+            "Not idempotent on CRLF overwrite with blank-line separator!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_to_changelog_contents_crlf_double_newline_overwrite() {
+        let mut changelog_content =
+            "# Changelog\r\n\r\n## [Unreleased]\r\n\r\n### Dependencies\r\n\r\n- `serde`: 1.0.214 → 1.0.215\r\n\r\n## [0.1.0]\r\n".to_owned();
+        let changes = vec![DependabotChange::new("serde", "1.0.215", "1.0.216")];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+
+        let expect = "# Changelog\r\n\r\n## [Unreleased]\r\n\r\n### Dependencies\r\n\r\n- `serde`: 1.0.214 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n\r\n## [0.1.0]\r\n";
+        assert_str_eq!(&changelog_content, expect);
+    }
+
+    #[test]
+    fn test_add_changes_crlf_single_newline_overwrite() {
+        let changelog_raw = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+- `env_logger`: 0.11.5 → 0.11.6
+- `semver`: 1.0.23 → 1.0.24
+
+### Fix
+
+- Some issue
+"##;
+        let mut changelog_content = changelog_raw.replace('\n', "\r\n");
+
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("env_logger", "0.11.6", "0.12.0"),
+        ];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+        let expect_final_changelog_contents = r##"# Changelog
+
+## [Unreleased]
+
+### Dependencies
+
+- `chrono`: 0.4.38 → 0.4.39
+- `semver`: 1.0.23 → 1.0.24
+- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))
+- `env_logger`: 0.11.5 → 0.12.0 ([#1](https://github.com/user/repo/pull/1))
+
+### Fix
+
+- Some issue
+"##
+        .replace('\n', "\r\n");
+
+        add_changes_to_changelog_contents(
+            changes.clone(),
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(&changelog_content, &expect_final_changelog_contents);
+
+        // Run again to ensure idempotency
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+        assert_str_eq!(
+            &changelog_content,
+            &expect_final_changelog_contents,
+            "Not idempotent on CRLF single newline overwrite!"
+        );
+    }
+
+    #[test]
+    fn test_add_changes_blank_line_separator_overwrite_unicode_whitespace() {
+        let mut changelog_content = "# Changelog\n\n## [Unreleased]\n\n### Dependencies\n\n- `serde`: 1.0.214 → 1.0.215\n\u{00A0}\n## [0.1.0]\n".to_owned();
+        let changes = vec![DependabotChange::new("serde", "1.0.215", "1.0.216")];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+
+        let expect = "# Changelog\n\n## [Unreleased]\n\n### Dependencies\n\n- `serde`: 1.0.214 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\n## [0.1.0]\n";
+        assert_str_eq!(&changelog_content, expect);
     }
 }
