@@ -1,3 +1,4 @@
+use crate::config::EntrySeparator;
 use dependabot_change::DependabotChange;
 use entry_pattern::EntryPattern;
 
@@ -21,7 +22,7 @@ const UPDATE_KEYWORDS: [(&str, usize); 2] = [
     (UPDATE_LINE_KEYWORD_B, UPDATE_LINE_KEYWORD_B.len()),
 ];
 
-fn parse_changes(body: &str) -> Vec<DependabotChange> {
+fn parse_changes(body: &str) -> Vec<DependabotChange<'_>> {
     let mut changes = Vec::new();
 
     let mut skip_parsing = false;
@@ -48,72 +49,112 @@ fn parse_changes(body: &str) -> Vec<DependabotChange> {
     changes
 }
 
-pub fn formatted_entry_lines(
-    changes: Vec<DependabotChange>,
+#[expect(dead_code)]
+pub fn separator_newline(sep: &str) -> &'static str {
+    if sep.contains("\r\n") { "\r\n" } else { "\n" }
+}
+
+pub fn format_changes_with_sep(
+    changes: &[DependabotChange],
     entry_pattern: &EntryPattern,
+    entry_separator: EntrySeparator,
     markdown_pull_request_link: &str,
-) -> Vec<String> {
-    let mut formatted_entries = vec![];
-    for change in changes {
-        // For each change, add a list item in markdown format
-        let entry = entry_pattern.format(
+) -> String {
+    let mut result = String::new();
+    let newline = entry_separator.newline();
+    for (i, change) in changes.iter().enumerate() {
+        if i > 0 {
+            result.push_str(entry_separator.as_str());
+        }
+        let formatted = entry_pattern.format(
             change.name,
             change.old_version(),
             change.new_version,
             markdown_pull_request_link,
         );
-        formatted_entries.push(entry);
+        let trimmed = formatted.trim_end_matches(['\r', '\n']);
+        result.push_str(trimmed);
     }
-    formatted_entries
+    if !result.is_empty() {
+        result.push_str(newline);
+    }
+    result
 }
 
-pub fn get_formatted_changes(
-    abs_h3_contents: &str,
-    changes: Vec<DependabotChange>,
-    entry_pattern: &EntryPattern,
-    markdown_pull_request_link: &str,
-) -> String {
-    let changes_lines_md =
-        formatted_entry_lines(changes, entry_pattern, markdown_pull_request_link);
-    let mut changes_markdown = String::new();
-    for new_changes in changes_lines_md {
-        let mut already_exists = false;
-        for old_lines in abs_h3_contents.split_inclusive('\n') {
-            if new_changes == old_lines {
-                already_exists = true;
-                break;
-            }
-        }
-        if !already_exists {
-            changes_markdown.push_str(&new_changes);
-        }
-    }
-    changes_markdown
-}
-
+#[allow(dead_code)]
 pub fn format_changes(
     changes: Vec<DependabotChange>,
     entry_pattern: &EntryPattern,
     markdown_pull_request_link: &str,
 ) -> String {
-    let mut markdown = String::new();
+    format_changes_with_sep(
+        &changes,
+        entry_pattern,
+        EntrySeparator::default(),
+        markdown_pull_request_link,
+    )
+}
 
-    // Iterate over each change and format it into the markdown string
+pub fn get_formatted_changes(
+    abs_h3_contents: &str,
+    changes: &[DependabotChange],
+    entry_pattern: &EntryPattern,
+    entry_separator: EntrySeparator,
+    markdown_pull_request_link: &str,
+) -> String {
+    let newline = entry_separator.newline();
+    let mut new_changes = Vec::new();
     for change in changes {
-        // For each change, add a list item in markdown format
         let entry = entry_pattern.format(
             change.name,
             change.old_version(),
             change.new_version,
             markdown_pull_request_link,
         );
-        markdown.push_str(&entry);
+        let trimmed_entry = entry.trim_end_matches(['\r', '\n']);
+        let mut already_exists = false;
+        for line in abs_h3_contents.lines() {
+            if line.trim_end_matches(['\r', '\n']) == trimmed_entry {
+                already_exists = true;
+                break;
+            }
+        }
+        if !already_exists {
+            new_changes.push(change.clone());
+        }
     }
 
-    debug_assert!(!markdown.starts_with("\n\n"));
-    debug_assert!(!markdown.ends_with("\n\n"));
+    if new_changes.is_empty() {
+        return String::new();
+    }
 
-    markdown
+    let mut result = format_changes_with_sep(
+        &new_changes,
+        entry_pattern,
+        entry_separator,
+        markdown_pull_request_link,
+    );
+
+    if entry_separator.is_blank_line() && abs_h3_contents.contains(EntryPattern::LINE_PREFIX) {
+        let trailing_newlines = if abs_h3_contents.ends_with("\r\n\r\n") {
+            2
+        } else if abs_h3_contents.ends_with("\r\n") || abs_h3_contents.ends_with('\n') {
+            if abs_h3_contents.ends_with("\n\n") {
+                2
+            } else {
+                1
+            }
+        } else {
+            0
+        };
+
+        let missing_newlines = 2usize.saturating_sub(trailing_newlines);
+        if missing_newlines > 0 {
+            result.insert_str(0, &newline.repeat(missing_newlines));
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]
@@ -288,5 +329,159 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
     fn test_parse_body_issue90() {
         let changes = parse_changes(DEPENDABOT_BODY_ISSUE_90);
         assert_eq!(changes, CHANGES_ISSUE_90);
+    }
+
+    #[test]
+    fn test_get_formatted_changes_blank_line_zero_trailing_newlines() {
+        let existing = "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))";
+        let changes = vec![DependabotChange::new("chrono", "0.4.38", "0.4.39")];
+        let entry_pattern = EntryPattern::default();
+
+        let formatted = get_formatted_changes(
+            existing,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted,
+            "\n\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+        let combined = format!("{existing}{formatted}");
+        assert_eq!(
+            combined,
+            "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+    }
+
+    #[test]
+    fn test_get_formatted_changes_blank_line_one_trailing_newline() {
+        let existing = "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n";
+        let changes = vec![DependabotChange::new("chrono", "0.4.38", "0.4.39")];
+        let entry_pattern = EntryPattern::default();
+
+        let formatted = get_formatted_changes(
+            existing,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted,
+            "\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+        let combined = format!("{existing}{formatted}");
+        assert_eq!(
+            combined,
+            "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+    }
+
+    #[test]
+    fn test_get_formatted_changes_crlf_blank_line_zero_trailing_newlines() {
+        let existing = "### Dependencies\r\n\r\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))";
+        let changes = vec![DependabotChange::new("chrono", "0.4.38", "0.4.39")];
+        let entry_pattern = EntryPattern::default();
+
+        let formatted = get_formatted_changes(
+            existing,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted,
+            "\r\n\r\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\r\n"
+        );
+        let combined = format!("{existing}{formatted}");
+        assert_eq!(
+            combined,
+            "### Dependencies\r\n\r\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n\r\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\r\n"
+        );
+    }
+
+    #[test]
+    fn test_get_formatted_changes_crlf_blank_line_one_trailing_newline() {
+        let existing = "### Dependencies\r\n\r\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n";
+        let changes = vec![DependabotChange::new("chrono", "0.4.38", "0.4.39")];
+        let entry_pattern = EntryPattern::default();
+
+        let formatted = get_formatted_changes(
+            existing,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted,
+            "\r\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\r\n"
+        );
+        let combined = format!("{existing}{formatted}");
+        assert_eq!(
+            combined,
+            "### Dependencies\r\n\r\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n\r\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\r\n"
+        );
+    }
+
+    #[test]
+    fn test_get_formatted_changes_sufficient_trailing_newlines() {
+        // LF with 2 trailing newlines
+        let existing_lf = "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\n";
+        let changes = vec![DependabotChange::new("chrono", "0.4.38", "0.4.39")];
+        let entry_pattern = EntryPattern::default();
+
+        let formatted_lf = get_formatted_changes(
+            existing_lf,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_LF,
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted_lf,
+            "- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+        let combined_lf = format!("{existing_lf}{formatted_lf}");
+        assert_eq!(
+            combined_lf,
+            "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
+
+        // CRLF with 2 trailing CRLFs
+        let existing_crlf = "### Dependencies\r\n\r\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n\r\n";
+        let formatted_crlf = get_formatted_changes(
+            existing_crlf,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted_crlf,
+            "- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\r\n"
+        );
+        let combined_crlf = format!("{existing_crlf}{formatted_crlf}");
+        assert_eq!(
+            combined_crlf,
+            "### Dependencies\r\n\r\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n\r\n- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\r\n"
+        );
+
+        // Default "\n" single newline separator should never add extra leading newlines
+        let existing_single = "### Dependencies\n\n- `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n";
+        let formatted_single = get_formatted_changes(
+            existing_single,
+            &changes,
+            &entry_pattern,
+            EntrySeparator::default(),
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
+        assert_str_eq!(
+            formatted_single,
+            "- `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n"
+        );
     }
 }

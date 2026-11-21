@@ -109,6 +109,12 @@ jobs:
         # default: 'Dependencies'
         section-header: ''
 
+        # Separator between changelog entries.
+        # Supported values: '\n' (default), '\n\n' (blank line between entries), '\r\n', or '\r\n\r\n'.
+        # For a blank line between entries, set: '\n\n'
+        # default: '\n'
+        entry-separator: '\n'
+
         # Whether or not to add, commit, & push the modified changelog
         # Note: If no changes are made, no commit is made either
         # default: 'true'

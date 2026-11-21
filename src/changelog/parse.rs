@@ -1,6 +1,9 @@
 use std::ops;
 
-use crate::{config::VersionHeader, dependabot_changes::dependabot_change::DependabotChange};
+use crate::{
+    config::{EntrySeparator, VersionHeader},
+    dependabot_changes::dependabot_change::DependabotChange,
+};
 
 /// Attempts to find the "old version" in a line describing a dependency update
 /// will attempt to find semver or SHA1
@@ -159,8 +162,13 @@ pub fn find_existing_h3_insert_position(
                 let mut offset_within_section = 0;
                 for l in changelog_content[content_pos..].split_inclusive('\n') {
                     if l.starts_with("##") {
-                        // Go back one to prevent extra blank lines
-                        offset_within_section -= 1;
+                        // Go back one newline to prevent extra blank lines
+                        let prefix = &changelog_content[..content_pos + offset_within_section];
+                        if prefix.ends_with("\r\n") {
+                            offset_within_section -= 2;
+                        } else if prefix.ends_with('\n') {
+                            offset_within_section -= 1;
+                        }
                         break;
                     }
                     offset_within_section += l.len();
@@ -211,12 +219,14 @@ impl DependencyEntryLine {
 pub fn find_existing_dependency_lines_to_replace(
     changelog: &str,
     changes: &mut [DependabotChange],
+    entry_separator: EntrySeparator,
 ) -> Vec<DependencyEntryLine> {
     let mut existing_deps = vec![];
     let mut current_pos = 0;
     let mut seen_changes = vec![]; // ensure we only replace the first instance
 
-    for line in changelog.split_inclusive('\n') {
+    let lines: Vec<&str> = changelog.split_inclusive('\n').collect();
+    for (line_idx, line) in lines.iter().enumerate() {
         for change in &mut *changes {
             if seen_changes.contains(&change.name) {
                 continue; // Skip if this change has already been matched
@@ -260,9 +270,17 @@ pub fn find_existing_dependency_lines_to_replace(
                             "Found old version: '{old_ver}' from current line: '{curr_line}'"
                         );
                         change.replace_old_version(old_ver);
+                        let mut line_len = line.len();
+                        if entry_separator.is_blank_line() {
+                            if let Some(next_line) = lines.get(line_idx + 1) {
+                                if next_line.trim().is_empty() {
+                                    line_len += next_line.len();
+                                }
+                            }
+                        }
                         let existing_dep = DependencyEntryLine {
                             line_start: current_pos,
-                            line_len: line.len(),
+                            line_len,
                         };
                         existing_deps.push(existing_dep);
                         seen_changes.push(change.name);
@@ -391,7 +409,11 @@ mod tests {
     fn test_find_existing_dependencies_to_replace_simple() {
         let changelog = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES;
         let mut changes = EXAMPLE_CHANGES_SMALL.to_vec();
-        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes);
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
         assert_eq!(changes[0], EXAMPLE_CHANGES_SMALL[0]);
         assert_eq!(
             changes[1].old_version(),
@@ -412,7 +434,7 @@ mod tests {
 
         let expect_h2_pos = 29;
 
-        let insert_pos = find_h2_insert_position(&changelog_content, &version_header).unwrap();
+        let insert_pos = find_h2_insert_position(changelog_content, &version_header).unwrap();
         assert_eq!(insert_pos, expect_h2_pos);
         eprintln!("{}", &changelog_content[..insert_pos - 1]);
         assert!(changelog_content[..insert_pos - 1].ends_with("## [unreleased]"));
@@ -467,7 +489,11 @@ mod tests {
             DependabotChange::new("env", "0.3.2", "0.3.33"),
             DependabotChange::new("env_logger", "0.11.8", "0.12.0"),
         ];
-        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes);
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
         assert_str_eq!(
             changes[0].old_version(),
             "0.1.5",
@@ -520,7 +546,11 @@ mod tests {
 - Update _docker/build-push-action_ from `6.17.0` to [`6.18.0`](https://github.com/docker/build-push-action/releases/tag/v6.17.0). ([#18](https://github.com/foo-bar/build-workflows/pull/18)) _@dependabot_
 "##;
         let mut changes = CHANGES_ISSUE_90.to_vec();
-        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes);
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
         // Actually the changelog has 2 entries with older versions, but we don't really support this so we just replace the first one seen
         let expect_replaced_version = "3.28.17";
 
@@ -536,5 +566,22 @@ mod tests {
                 line_len: 200
             }]
         );
+    }
+
+    #[test]
+    fn test_find_existing_dependencies_to_replace_blank_line() {
+        let changelog =
+            "### Dependencies\n\n- `env_logger`: 0.11.5 → 0.11.6\n\n- `serde`: 1.0.0 → 1.0.1\n";
+        let mut changes = vec![DependabotChange::new("env_logger", "0.11.6", "0.11.7")];
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::DOUBLE_LF,
+        );
+        assert_eq!(to_replace.len(), 1);
+        assert_eq!(to_replace[0].line_start, 18);
+        // line_len includes the entry line plus the trailing blank line (35 bytes in UTF-8)
+        assert_eq!(to_replace[0].line_len, 35);
+        assert_eq!(changes[0].old_version(), "0.11.5");
     }
 }
