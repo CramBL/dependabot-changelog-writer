@@ -144,7 +144,7 @@ runs:
         '${{ inputs.commit-message }}' \
         '${{ inputs.version }}' \
         '${{ inputs.section-header }}' \
-        '${{ inputs.entry-separator }}' \
+        '${{ inputs.entry-separator }}'
       env:
         GH_TOKEN: ${{ inputs.action-download-token }}
         PUSH_TOKEN: ${{ inputs.push-token }}

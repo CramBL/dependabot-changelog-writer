@@ -1,3 +1,4 @@
+use crate::config::EntrySeparator;
 use dependabot_change::DependabotChange;
 use entry_pattern::EntryPattern;
 
@@ -48,6 +49,7 @@ fn parse_changes(body: &str) -> Vec<DependabotChange<'_>> {
     changes
 }
 
+#[expect(dead_code)]
 pub fn separator_newline(sep: &str) -> &'static str {
     if sep.contains("\r\n") { "\r\n" } else { "\n" }
 }
@@ -55,14 +57,14 @@ pub fn separator_newline(sep: &str) -> &'static str {
 pub fn format_changes_with_sep(
     changes: &[DependabotChange],
     entry_pattern: &EntryPattern,
-    entry_separator: &str,
+    entry_separator: EntrySeparator,
     markdown_pull_request_link: &str,
 ) -> String {
     let mut result = String::new();
-    let newline = separator_newline(entry_separator);
+    let newline = entry_separator.newline();
     for (i, change) in changes.iter().enumerate() {
         if i > 0 {
-            result.push_str(entry_separator);
+            result.push_str(entry_separator.as_str());
         }
         let formatted = entry_pattern.format(
             change.name,
@@ -85,17 +87,22 @@ pub fn format_changes(
     entry_pattern: &EntryPattern,
     markdown_pull_request_link: &str,
 ) -> String {
-    format_changes_with_sep(&changes, entry_pattern, "\n", markdown_pull_request_link)
+    format_changes_with_sep(
+        &changes,
+        entry_pattern,
+        EntrySeparator::default(),
+        markdown_pull_request_link,
+    )
 }
 
 pub fn get_formatted_changes(
     abs_h3_contents: &str,
     changes: &[DependabotChange],
     entry_pattern: &EntryPattern,
-    entry_separator: &str,
+    entry_separator: EntrySeparator,
     markdown_pull_request_link: &str,
 ) -> String {
-    let newline = separator_newline(entry_separator);
+    let newline = entry_separator.newline();
     let mut new_changes = Vec::new();
     for change in changes {
         let entry = entry_pattern.format(
@@ -128,9 +135,7 @@ pub fn get_formatted_changes(
         markdown_pull_request_link,
     );
 
-    if (entry_separator == "\n\n" || entry_separator == "\r\n\r\n")
-        && abs_h3_contents.contains(EntryPattern::LINE_PREFIX)
-    {
+    if entry_separator.is_blank_line() && abs_h3_contents.contains(EntryPattern::LINE_PREFIX) {
         let trailing_newlines = if abs_h3_contents.ends_with("\r\n\r\n") {
             2
         } else if abs_h3_contents.ends_with("\r\n") || abs_h3_contents.ends_with('\n') {
@@ -336,7 +341,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing,
             &changes,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(
@@ -360,7 +365,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing,
             &changes,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(
@@ -384,7 +389,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing,
             &changes,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(
@@ -408,7 +413,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing,
             &changes,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(
@@ -433,7 +438,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing_lf,
             &changes,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(
@@ -452,7 +457,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing_crlf,
             &changes,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(
@@ -471,7 +476,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             existing_single,
             &changes,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             EXAMPLE_MARKDOWN_PR_LINK,
         );
         assert_str_eq!(

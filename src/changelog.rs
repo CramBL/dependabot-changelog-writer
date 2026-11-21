@@ -1,7 +1,7 @@
 mod parse;
 
 use crate::{
-    config::{DuplicateEntryStrategy, VersionHeader},
+    config::{DuplicateEntryStrategy, EntrySeparator, VersionHeader},
     dependabot_changes::{
         dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes_with_sep,
         get_formatted_changes,
@@ -14,7 +14,7 @@ pub fn add_changes_to_changelog_contents(
     changelog_content: &mut String,
     markdown_pull_request_link: &str,
     entry_pattern: &EntryPattern,
-    entry_separator: &str,
+    entry_separator: EntrySeparator,
     duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: &VersionHeader,
     section_header: &str,
@@ -117,7 +117,7 @@ pub fn add_changes_to_changelog_contents(
         );
         changelog_content.insert_str(changes_insert_pos, &changes_markdown);
     } else {
-        let is_crlf = entry_separator.contains("\r\n") || changelog_content.contains("\r\n");
+        let is_crlf = entry_separator.is_crlf() || changelog_content.contains("\r\n");
         let newline = if is_crlf { "\r\n" } else { "\n" };
         let changes_md = format_changes_with_sep(
             &changes,
@@ -202,7 +202,7 @@ mod tests {
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -215,7 +215,7 @@ mod tests {
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -271,7 +271,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -284,7 +284,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -330,7 +330,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -342,7 +342,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -394,7 +394,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -406,7 +406,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -461,7 +461,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Append,
             &version_header,
             section_header,
@@ -473,7 +473,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Append,
             &version_header,
             section_header,
@@ -526,7 +526,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -538,7 +538,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -579,7 +579,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -591,7 +591,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -706,7 +706,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -722,7 +722,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -784,7 +784,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -802,7 +802,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n",
+            EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -851,7 +851,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -864,7 +864,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -925,7 +925,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -938,7 +938,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1001,7 +1001,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1014,7 +1014,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\n\n",
+            EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1063,7 +1063,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1076,7 +1076,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1140,7 +1140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1153,7 +1153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &mut changelog_content,
             EXAMPLE_MARKDOWN_PR_LINK,
             &entry_pattern,
-            "\r\n\r\n",
+            EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
             &version_header,
             section_header,
@@ -1163,5 +1163,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
             &expect_final_changelog_contents,
             "Not idempotent on CRLF overwrite with blank-line separator!"
         );
+    }
+
+    #[test]
+    fn test_add_changes_to_changelog_contents_crlf_double_newline_overwrite() {
+        let mut changelog_content =
+            "# Changelog\r\n\r\n## [Unreleased]\r\n\r\n### Dependencies\r\n\r\n- `serde`: 1.0.214 → 1.0.215\r\n\r\n## [0.1.0]\r\n".to_owned();
+        let changes = vec![DependabotChange::new("serde", "1.0.215", "1.0.216")];
+        let entry_pattern = EntryPattern::default();
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            EXAMPLE_MARKDOWN_PR_LINK,
+            &entry_pattern,
+            EntrySeparator::DOUBLE_CRLF,
+            DuplicateEntryStrategy::Overwrite,
+            &version_header,
+            section_header,
+        );
+
+        let expect = "# Changelog\r\n\r\n## [Unreleased]\r\n\r\n### Dependencies\r\n\r\n- `serde`: 1.0.214 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\r\n\r\n## [0.1.0]\r\n";
+        assert_str_eq!(&changelog_content, expect);
     }
 }

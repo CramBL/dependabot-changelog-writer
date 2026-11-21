@@ -1,6 +1,9 @@
 use std::ops;
 
-use crate::{config::VersionHeader, dependabot_changes::dependabot_change::DependabotChange};
+use crate::{
+    config::{EntrySeparator, VersionHeader},
+    dependabot_changes::dependabot_change::DependabotChange,
+};
 
 /// Attempts to find the "old version" in a line describing a dependency update
 /// will attempt to find semver or SHA1
@@ -216,7 +219,7 @@ impl DependencyEntryLine {
 pub fn find_existing_dependency_lines_to_replace(
     changelog: &str,
     changes: &mut [DependabotChange],
-    entry_separator: &str,
+    entry_separator: EntrySeparator,
 ) -> Vec<DependencyEntryLine> {
     let mut existing_deps = vec![];
     let mut current_pos = 0;
@@ -268,7 +271,7 @@ pub fn find_existing_dependency_lines_to_replace(
                         );
                         change.replace_old_version(old_ver);
                         let mut line_len = line.len();
-                        if entry_separator == "\n\n" || entry_separator == "\r\n\r\n" {
+                        if entry_separator.is_blank_line() {
                             if let Some(next_line) = lines.get(line_idx + 1) {
                                 if next_line.trim().is_empty() {
                                     line_len += next_line.len();
@@ -406,7 +409,11 @@ mod tests {
     fn test_find_existing_dependencies_to_replace_simple() {
         let changelog = EXAMPLE_CHANGELOG_CONTENTS_CONTAINS_DEPENDENCIES;
         let mut changes = EXAMPLE_CHANGES_SMALL.to_vec();
-        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes, "\n");
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
         assert_eq!(changes[0], EXAMPLE_CHANGES_SMALL[0]);
         assert_eq!(
             changes[1].old_version(),
@@ -482,7 +489,11 @@ mod tests {
             DependabotChange::new("env", "0.3.2", "0.3.33"),
             DependabotChange::new("env_logger", "0.11.8", "0.12.0"),
         ];
-        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes, "\n");
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
         assert_str_eq!(
             changes[0].old_version(),
             "0.1.5",
@@ -535,7 +546,11 @@ mod tests {
 - Update _docker/build-push-action_ from `6.17.0` to [`6.18.0`](https://github.com/docker/build-push-action/releases/tag/v6.17.0). ([#18](https://github.com/foo-bar/build-workflows/pull/18)) _@dependabot_
 "##;
         let mut changes = CHANGES_ISSUE_90.to_vec();
-        let to_replace = find_existing_dependency_lines_to_replace(changelog, &mut changes, "\n");
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::default(),
+        );
         // Actually the changelog has 2 entries with older versions, but we don't really support this so we just replace the first one seen
         let expect_replaced_version = "3.28.17";
 
@@ -551,5 +566,22 @@ mod tests {
                 line_len: 200
             }]
         );
+    }
+
+    #[test]
+    fn test_find_existing_dependencies_to_replace_blank_line() {
+        let changelog =
+            "### Dependencies\n\n- `env_logger`: 0.11.5 → 0.11.6\n\n- `serde`: 1.0.0 → 1.0.1\n";
+        let mut changes = vec![DependabotChange::new("env_logger", "0.11.6", "0.11.7")];
+        let to_replace = find_existing_dependency_lines_to_replace(
+            changelog,
+            &mut changes,
+            EntrySeparator::DOUBLE_LF,
+        );
+        assert_eq!(to_replace.len(), 1);
+        assert_eq!(to_replace[0].line_start, 18);
+        // line_len includes the entry line plus the trailing blank line (35 bytes in UTF-8)
+        assert_eq!(to_replace[0].line_len, 35);
+        assert_eq!(changes[0].old_version(), "0.11.5");
     }
 }
