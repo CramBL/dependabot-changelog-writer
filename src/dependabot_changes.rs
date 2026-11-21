@@ -49,12 +49,7 @@ fn parse_changes(body: &str) -> Vec<DependabotChange<'_>> {
     changes
 }
 
-#[expect(dead_code)]
-pub fn separator_newline(sep: &str) -> &'static str {
-    if sep.contains("\r\n") { "\r\n" } else { "\n" }
-}
-
-pub fn format_changes_with_sep(
+pub fn format_changes(
     changes: &[DependabotChange],
     entry_pattern: &EntryPattern,
     entry_separator: EntrySeparator,
@@ -79,20 +74,6 @@ pub fn format_changes_with_sep(
         result.push_str(newline);
     }
     result
-}
-
-#[allow(dead_code)]
-pub fn format_changes(
-    changes: Vec<DependabotChange>,
-    entry_pattern: &EntryPattern,
-    markdown_pull_request_link: &str,
-) -> String {
-    format_changes_with_sep(
-        &changes,
-        entry_pattern,
-        EntrySeparator::default(),
-        markdown_pull_request_link,
-    )
 }
 
 pub fn get_formatted_changes(
@@ -128,7 +109,7 @@ pub fn get_formatted_changes(
         return String::new();
     }
 
-    let mut result = format_changes_with_sep(
+    let mut result = format_changes(
         &new_changes,
         entry_pattern,
         entry_separator,
@@ -180,7 +161,12 @@ mod tests {
                 "7ca345011ac4304463197fac0e56eab1bc7e6af0"
             )
         );
-        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
+        let changes_md = format_changes(
+            &changes,
+            entry_pattern,
+            EntrySeparator::default(),
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
         let expect_md = "\
         - `crate-ci/typos`: 1.27.0 → 1.28.4 ([#1](https://github.com/user/repo/pull/1))\n\
         - `docker/login-action`: 3d58c274f17dffee475a5520cbe67f0a882c4dbb → 7ca345011ac4304463197fac0e56eab1bc7e6af0 ([#1](https://github.com/user/repo/pull/1))\n";
@@ -228,7 +214,12 @@ mod tests {
             DependabotChange::new("thiserror", "2.0.4", "2.0.9")
         );
 
-        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
+        let changes_md = format_changes(
+            &changes,
+            entry_pattern,
+            EntrySeparator::default(),
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
         let expect_md = "\
         - `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\
         - `chrono`: 0.4.38 → 0.4.39 ([#1](https://github.com/user/repo/pull/1))\n\
@@ -246,7 +237,12 @@ mod tests {
         let changes = EXAMPLE_CHANGES.to_vec();
         let entry_pattern = &EntryPattern::new("Bump `[dep]` from [old] to [new]").unwrap();
 
-        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
+        let changes_md = format_changes(
+            &changes,
+            entry_pattern,
+            EntrySeparator::default(),
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
         let expect_md = "\
         - Bump `serde` from 1.0.215 to 1.0.216\n\
         - Bump `chrono` from 0.4.38 to 0.4.39\n\
@@ -265,7 +261,12 @@ mod tests {
         let entry_pattern =
             &EntryPattern::new("📝 Update [dep] from 🩺[old]🩺 🚀 🍄[new]🍄").unwrap();
 
-        let changes_md = format_changes(changes, entry_pattern, EXAMPLE_MARKDOWN_PR_LINK);
+        let changes_md = format_changes(
+            &changes,
+            entry_pattern,
+            EntrySeparator::default(),
+            EXAMPLE_MARKDOWN_PR_LINK,
+        );
         let expect_md = "\
         - 📝 Update serde from 🩺1.0.215🩺 🚀 🍄1.0.216🍄\n\
         - 📝 Update chrono from 🩺0.4.38🩺 🚀 🍄0.4.39🍄\n\

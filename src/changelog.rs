@@ -3,7 +3,7 @@ mod parse;
 use crate::{
     config::{DuplicateEntryStrategy, EntrySeparator, VersionHeader},
     dependabot_changes::{
-        dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes_with_sep,
+        dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes,
         get_formatted_changes,
     },
 };
@@ -119,7 +119,7 @@ pub fn add_changes_to_changelog_contents(
     } else {
         let is_crlf = entry_separator.is_crlf() || changelog_content.contains("\r\n");
         let newline = if is_crlf { "\r\n" } else { "\n" };
-        let changes_md = format_changes_with_sep(
+        let changes_md = format_changes(
             &changes,
             entry_pattern,
             entry_separator,

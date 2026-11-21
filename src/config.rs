@@ -91,37 +91,11 @@ impl EntrySeparator {
     pub const fn len(&self) -> usize {
         self.as_str().len()
     }
-
-    #[must_use]
-    #[allow(dead_code)]
-    pub const fn is_empty(&self) -> bool {
-        false
-    }
 }
 
 impl Default for EntrySeparator {
     fn default() -> Self {
         Self::LF
-    }
-}
-
-impl std::ops::Deref for EntrySeparator {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_str()
-    }
-}
-
-impl AsRef<str> for EntrySeparator {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl std::fmt::Display for EntrySeparator {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
     }
 }
 
@@ -152,14 +126,6 @@ impl std::str::FromStr for EntrySeparator {
     fn from_str(s: &str) -> Result<Self> {
         Self::try_from(s)
     }
-}
-
-#[expect(dead_code)]
-pub const DEFAULT_ENTRY_SEPARATOR: &str = "\n";
-
-#[expect(dead_code)]
-pub fn parse_entry_separator(s: &str) -> Result<EntrySeparator> {
-    EntrySeparator::try_from(s)
 }
 
 #[derive(Debug)]
@@ -311,8 +277,19 @@ impl Config {
 mod tests {
     use super::*;
 
+    fn base_test_args() -> Vec<String> {
+        vec![
+            "CHANGELOG.md".to_owned(),
+            "`[dep]`: [old] → [new]".to_owned(),
+            "overwrite".to_owned(),
+            "commit msg".to_owned(),
+            "Unreleased".to_owned(),
+            "Dependencies".to_owned(),
+        ]
+    }
+
     #[test]
-    fn test_entry_separator_values() {
+    fn test_entry_separator_parses_all_supported_variants() {
         assert_eq!(EntrySeparator::try_from("\n").unwrap(), EntrySeparator::LF);
         assert_eq!(EntrySeparator::try_from("\\n").unwrap(), EntrySeparator::LF);
         assert_eq!(
@@ -339,100 +316,109 @@ mod tests {
             EntrySeparator::try_from("\\r\\n\\r\\n").unwrap(),
             EntrySeparator::DOUBLE_CRLF
         );
-        assert!(EntrySeparator::try_from("").is_err());
-        assert!(EntrySeparator::try_from("foo").is_err());
-        assert!(EntrySeparator::try_from("\n\n\n").is_err());
     }
 
     #[test]
-    fn test_entry_separator_methods() {
+    fn test_entry_separator_rejects_invalid_values() {
+        assert!(EntrySeparator::try_from("").is_err());
+        assert!(EntrySeparator::try_from("foo").is_err());
+        assert!(EntrySeparator::try_from("\n\n\n").is_err());
+        assert!(EntrySeparator::try_from("\\t").is_err());
+        assert!(EntrySeparator::try_from("\t").is_err());
+    }
+
+    #[test]
+    fn test_entry_separator_properties() {
         let lf = EntrySeparator::LF;
         assert_eq!(lf.as_str(), "\n");
         assert_eq!(lf.newline(), "\n");
         assert_eq!(lf.len(), 1);
-        assert!(!lf.is_empty());
         assert!(!lf.is_blank_line());
         assert!(!lf.is_crlf());
-        assert_eq!(lf.to_string(), "\n");
-        assert_eq!(&*lf, "\n");
-        assert_eq!(lf.as_ref(), "\n");
         assert_eq!(EntrySeparator::default(), EntrySeparator::LF);
 
         let double_lf = EntrySeparator::DOUBLE_LF;
         assert_eq!(double_lf.as_str(), "\n\n");
         assert_eq!(double_lf.newline(), "\n");
+        assert_eq!(double_lf.len(), 2);
         assert!(double_lf.is_blank_line());
         assert!(!double_lf.is_crlf());
 
         let crlf = EntrySeparator::CRLF;
         assert_eq!(crlf.as_str(), "\r\n");
         assert_eq!(crlf.newline(), "\r\n");
+        assert_eq!(crlf.len(), 2);
         assert!(!crlf.is_blank_line());
         assert!(crlf.is_crlf());
 
         let double_crlf = EntrySeparator::DOUBLE_CRLF;
         assert_eq!(double_crlf.as_str(), "\r\n\r\n");
         assert_eq!(double_crlf.newline(), "\r\n");
+        assert_eq!(double_crlf.len(), 4);
         assert!(double_crlf.is_blank_line());
         assert!(double_crlf.is_crlf());
     }
 
     #[test]
-    fn test_config_from_args_branches() {
-        let base_args = vec![
-            "CHANGELOG.md".to_owned(),
-            "`[dep]`: [old] → [new]".to_owned(),
-            "overwrite".to_owned(),
-            "commit msg".to_owned(),
-            "Unreleased".to_owned(),
-            "Dependencies".to_owned(),
-        ];
-
-        // Default with no extra args
-        let config = Config::from_args(base_args.clone().into_iter()).unwrap();
+    fn test_config_from_args_uses_default_separator() {
+        let config = Config::from_args(base_test_args().into_iter()).unwrap();
         assert_eq!(config.entry_separator(), EntrySeparator::default());
         assert!(!config.dry_run());
+    }
 
-        // Dry-run alone (7 args)
-        let mut args = base_args.clone();
+    #[test]
+    fn test_config_from_args_accepts_dry_run_without_separator() {
+        let mut args = base_test_args();
         args.push("dry-run".to_owned());
         let config = Config::from_args(args.into_iter()).unwrap();
         assert_eq!(config.entry_separator(), EntrySeparator::default());
         assert!(config.dry_run());
+    }
 
-        // Separator specified, no dry-run (7 args)
-        let mut args = base_args.clone();
+    #[test]
+    fn test_config_from_args_accepts_custom_separator() {
+        let mut args = base_test_args();
         args.push("\\n\\n".to_owned());
         let config = Config::from_args(args.into_iter()).unwrap();
         assert_eq!(config.entry_separator(), EntrySeparator::DOUBLE_LF);
         assert!(!config.dry_run());
+    }
 
-        // Separator specified with dry-run (8 args)
-        let mut args = base_args.clone();
+    #[test]
+    fn test_config_from_args_accepts_separator_with_dry_run() {
+        let mut args = base_test_args();
         args.push("\\n".to_owned());
         args.push("dry-run".to_owned());
         let config = Config::from_args(args.into_iter()).unwrap();
         assert_eq!(config.entry_separator(), EntrySeparator::LF);
         assert!(config.dry_run());
+    }
 
-        // Separator specified with 'true' (CI case, 8 args)
-        let mut args = base_args.clone();
+    #[test]
+    fn test_config_from_args_accepts_separator_with_boolean_push_arg() {
+        let mut args = base_test_args();
         args.push("\\n".to_owned());
         args.push("true".to_owned());
         let config = Config::from_args(args.into_iter()).unwrap();
         assert_eq!(config.entry_separator(), EntrySeparator::LF);
         assert!(!config.dry_run());
+    }
 
-        // Invalid separator produces error
-        let mut args = base_args.clone();
+    #[test]
+    fn test_config_from_args_rejects_invalid_separator() {
+        let mut args = base_test_args();
         args.push("invalid".to_owned());
-        assert!(Config::from_args(args.into_iter()).is_err());
+        let err = Config::from_args(args.into_iter()).unwrap_err();
+        assert!(err.to_string().contains("Invalid entry separator"));
+    }
 
-        // Too many arguments
-        let mut args = base_args;
+    #[test]
+    fn test_config_from_args_rejects_extra_arguments() {
+        let mut args = base_test_args();
         args.push("\\n".to_owned());
         args.push("dry-run".to_owned());
         args.push("unexpected".to_owned());
-        assert!(Config::from_args(args.into_iter()).is_err());
+        let err = Config::from_args(args.into_iter()).unwrap_err();
+        assert!(err.to_string().contains("Too many arguments provided"));
     }
 }
