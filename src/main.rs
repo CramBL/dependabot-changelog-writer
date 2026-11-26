@@ -28,10 +28,11 @@ fn run() -> Result<()> {
         log::debug!("Pull Request Body:\n{pr_body}");
         let changes = parse_body(pr_body);
         let mut changelog_contents = config.read_changelog()?;
+        let pr_info = event.pull_request_info();
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_contents,
-            &event.markdown_pull_request_link(),
+            &pr_info,
             config.entry_pattern(),
             config.entry_separator(),
             config.duplicate_entry_strategy(),

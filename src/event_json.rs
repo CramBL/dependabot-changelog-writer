@@ -8,36 +8,22 @@ use crate::github_env::{ENV_GH_DCH_BRANCH_NAME, github_event_path};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PullRequestInfo {
     pub number: String,
     pub url: String,
-    pub markdown_link: String,
 }
 
 impl PullRequestInfo {
-    pub fn new(
-        number: impl Into<String>,
-        url: impl Into<String>,
-        markdown_link: impl Into<String>,
-    ) -> Self {
+    pub fn new(number: impl Into<String>, url: impl Into<String>) -> Self {
         Self {
             number: number.into(),
             url: url.into(),
-            markdown_link: markdown_link.into(),
         }
     }
 
-    pub fn from_markdown_link(link: &str) -> Self {
-        if let Some(rest) = link.strip_prefix('[') {
-            if let Some((num_part, url_part)) = rest.split_once("](") {
-                if let Some(url) = url_part.strip_suffix(')') {
-                    let number = num_part.trim_start_matches(['\\', '#']);
-                    return Self::new(number, url, link);
-                }
-            }
-        }
-        Self::new("", "", link)
+    pub fn markdown_link(&self) -> String {
+        format!("[#{}]({})", self.number, self.url)
     }
 }
 
@@ -132,20 +118,15 @@ impl GithubEvent {
         &self.pr_link
     }
 
+    #[allow(dead_code)]
     pub fn markdown_pull_request_link(&self) -> String {
-        format!(
-            "[#{pr_number}]({pr_link})",
-            pr_number = self.pull_request_number(),
-            pr_link = self.pull_request_link()
-        )
+        self.pull_request_info().markdown_link()
     }
 
-    #[allow(dead_code)]
     pub fn pull_request_info(&self) -> PullRequestInfo {
         PullRequestInfo::new(
             self.pull_request_number().to_string(),
             self.pull_request_link(),
-            self.markdown_pull_request_link(),
         )
     }
 }
@@ -175,26 +156,18 @@ mod tests {
             "[#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1)"
         );
 
+        let pr_info = gh_event.pull_request_info();
+        assert_eq!(pr_info.number, "9");
+        assert_str_eq!(
+            pr_info.url,
+            "https://github.com/CramBL/dependabot-changelog-writer/pull/1"
+        );
+        assert_str_eq!(
+            pr_info.markdown_link(),
+            "[#9](https://github.com/CramBL/dependabot-changelog-writer/pull/1)"
+        );
+
         Ok(())
-    }
-
-    #[test]
-    fn test_pull_request_info_from_markdown_link() {
-        let link = "[#867](https://github.com/example/repo/pull/867)";
-        let info = PullRequestInfo::from_markdown_link(link);
-        assert_eq!(info.number, "867");
-        assert_eq!(info.url, "https://github.com/example/repo/pull/867");
-        assert_eq!(info.markdown_link, link);
-
-        let link_no_hash = "[867](https://github.com/example/repo/pull/867)";
-        let info2 = PullRequestInfo::from_markdown_link(link_no_hash);
-        assert_eq!(info2.number, "867");
-        assert_eq!(info2.url, "https://github.com/example/repo/pull/867");
-
-        let link_escaped = r"[\#867](https://github.com/example/repo/pull/867)";
-        let info3 = PullRequestInfo::from_markdown_link(link_escaped);
-        assert_eq!(info3.number, "867");
-        assert_eq!(info3.url, "https://github.com/example/repo/pull/867");
     }
 
     #[test]

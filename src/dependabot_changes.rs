@@ -1,4 +1,5 @@
 use crate::config::EntrySeparator;
+use crate::event_json::PullRequestInfo;
 use dependabot_change::DependabotChange;
 use entry_pattern::EntryPattern;
 
@@ -133,7 +134,7 @@ pub fn format_changes(
     changes: &[DependabotChange],
     entry_pattern: &EntryPattern,
     entry_separator: EntrySeparator,
-    markdown_pull_request_link: &str,
+    pr_info: &PullRequestInfo,
 ) -> String {
     let mut result = String::new();
     let newline = entry_separator.newline();
@@ -141,7 +142,7 @@ pub fn format_changes(
         if i > 0 {
             result.push_str(entry_separator.as_str());
         }
-        let formatted = entry_pattern.format_change(change, markdown_pull_request_link);
+        let formatted = entry_pattern.format_change(change, pr_info);
         let trimmed = formatted.trim_end_matches(['\r', '\n']);
         result.push_str(trimmed);
     }
@@ -156,12 +157,12 @@ pub fn get_formatted_changes(
     changes: &[DependabotChange],
     entry_pattern: &EntryPattern,
     entry_separator: EntrySeparator,
-    markdown_pull_request_link: &str,
+    pr_info: &PullRequestInfo,
 ) -> String {
     let newline = entry_separator.newline();
     let mut new_changes = Vec::new();
     for change in changes {
-        let entry = entry_pattern.format_change(change, markdown_pull_request_link);
+        let entry = entry_pattern.format_change(change, pr_info);
         let trimmed_entry = entry.trim_end_matches(['\r', '\n']);
         let mut already_exists = false;
         for line in abs_h3_contents.lines() {
@@ -179,12 +180,7 @@ pub fn get_formatted_changes(
         return String::new();
     }
 
-    let mut result = format_changes(
-        &new_changes,
-        entry_pattern,
-        entry_separator,
-        markdown_pull_request_link,
-    );
+    let mut result = format_changes(&new_changes, entry_pattern, entry_separator, pr_info);
 
     if entry_separator.is_blank_line() && abs_h3_contents.contains(EntryPattern::LINE_PREFIX) {
         let trailing_newlines = if abs_h3_contents.ends_with("\r\n\r\n") {
@@ -235,7 +231,7 @@ mod tests {
             &changes,
             entry_pattern,
             EntrySeparator::default(),
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         let expect_md = "\
         - `crate-ci/typos`: 1.27.0 → 1.28.4 ([#1](https://github.com/user/repo/pull/1))\n\
@@ -288,7 +284,7 @@ mod tests {
             &changes,
             entry_pattern,
             EntrySeparator::default(),
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         let expect_md = "\
         - `serde`: 1.0.215 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\
@@ -311,7 +307,7 @@ mod tests {
             &changes,
             entry_pattern,
             EntrySeparator::default(),
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         let expect_md = "\
         - Bump `serde` from 1.0.215 to 1.0.216\n\
@@ -335,7 +331,7 @@ mod tests {
             &changes,
             entry_pattern,
             EntrySeparator::default(),
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         let expect_md = "\
         - 📝 Update serde from 🩺1.0.215🩺 🚀 🍄1.0.216🍄\n\
@@ -413,7 +409,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted,
@@ -437,7 +433,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted,
@@ -461,7 +457,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted,
@@ -485,7 +481,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted,
@@ -510,7 +506,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted_lf,
@@ -529,7 +525,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted_crlf,
@@ -548,7 +544,7 @@ Updates baz from 2024.1.2 to 2025.1.2-rc1
             &changes,
             &entry_pattern,
             EntrySeparator::default(),
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
         );
         assert_str_eq!(
             formatted_single,

@@ -6,6 +6,7 @@ use crate::{
         dependabot_change::DependabotChange, entry_pattern::EntryPattern, format_changes,
         get_formatted_changes,
     },
+    event_json::PullRequestInfo,
 };
 
 /// Maximum extra capacity needed for the `### ` Markdown prefix and all possible surrounding newlines
@@ -38,15 +39,18 @@ const TWO_CRLF_NEWLINES_LEN: usize = "\r\n\r\n".len();
 pub fn add_changes_to_changelog_contents(
     mut changes: Vec<DependabotChange>,
     changelog_content: &mut String,
-    markdown_pull_request_link: &str,
+    pr_info: &PullRequestInfo,
     entry_pattern: &EntryPattern,
     entry_separator: EntrySeparator,
     duplicate_entry_strategy: DuplicateEntryStrategy,
     version_header: &VersionHeader,
     section_header: &str,
 ) {
-    let pr_link_len =
-        markdown_pull_request_link.len() * entry_pattern.pull_request_link_token_occurrences();
+    // The length of "[#{number}]({url})" is number.len() + url.len() + 5 (for '[', '#', ']', '(', ')')
+    let markdown_link_len = pr_info.number.len() + pr_info.url.len() + 5;
+    let pr_link_len = entry_pattern.pull_request_link_token_occurrences() * markdown_link_len
+        + entry_pattern.pull_request_number_token_occurrences() * pr_info.number.len()
+        + entry_pattern.pull_request_url_token_occurrences() * pr_info.url.len();
     let changes_formatted_len = changes.iter().fold(0, |sum, c| {
         c.total_len() + entry_pattern.min_len() + pr_link_len + sum
     });
@@ -160,18 +164,13 @@ pub fn add_changes_to_changelog_contents(
             &changes,
             entry_pattern,
             entry_separator,
-            markdown_pull_request_link,
+            pr_info,
         );
         changelog_content.insert_str(changes_insert_pos, &changes_markdown);
     } else {
         let is_crlf = entry_separator.is_crlf() || changelog_content.contains("\r\n");
         let newline = if is_crlf { "\r\n" } else { "\n" };
-        let changes_md = format_changes(
-            &changes,
-            entry_pattern,
-            entry_separator,
-            markdown_pull_request_link,
-        );
+        let changes_md = format_changes(&changes, entry_pattern, entry_separator, pr_info);
         let new_h3_insert_pos =
             parse::find_new_h3_insert_position(&changelog_content[h2_insert_pos..]);
         let insert_pos = h2_insert_pos + new_h3_insert_pos;
@@ -251,7 +250,7 @@ mod tests {
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -264,7 +263,7 @@ mod tests {
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -320,7 +319,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -333,7 +332,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -379,7 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -391,7 +390,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -443,7 +442,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -455,7 +454,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -510,7 +509,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Append,
@@ -522,7 +521,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Append,
@@ -575,7 +574,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -587,7 +586,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -628,7 +627,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -640,7 +639,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -755,7 +754,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -771,7 +770,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -833,7 +832,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -851,7 +850,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -900,7 +899,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -913,7 +912,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -962,7 +961,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -975,7 +974,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -1000,7 +999,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
-        let pr_link = "[#867](https://github.com/example/repo/pull/867)";
+        let pr_info = PullRequestInfo::new("867", "https://github.com/example/repo/pull/867");
         let expect_final_changelog_contents = r#"# Changelog
 
 ## [Unreleased]
@@ -1024,7 +1023,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            pr_link,
+            &pr_info,
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -1037,7 +1036,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            pr_link,
+            &pr_info,
             &entry_pattern,
             EntrySeparator::default(),
             DuplicateEntryStrategy::Overwrite,
@@ -1062,7 +1061,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         let version_header = VersionHeader::new("Unreleased".into());
         let section_header = "Dependencies";
-        let pr_link = "[#867](https://github.com/example/repo/pull/867)";
+        let pr_info = PullRequestInfo::new("867", "https://github.com/example/repo/pull/867");
         let expect_final_changelog_contents = r#"# Changelog
 
 ## [Unreleased]
@@ -1087,7 +1086,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            pr_link,
+            &pr_info,
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1100,7 +1099,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            pr_link,
+            &pr_info,
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1161,7 +1160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1174,7 +1173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1237,7 +1236,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1250,7 +1249,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1299,7 +1298,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1312,7 +1311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1376,7 +1375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1389,7 +1388,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1415,7 +1414,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1472,7 +1471,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes.clone(),
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1485,7 +1484,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::CRLF,
             DuplicateEntryStrategy::Overwrite,
@@ -1510,7 +1509,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         add_changes_to_changelog_contents(
             changes,
             &mut changelog_content,
-            EXAMPLE_MARKDOWN_PR_LINK,
+            &example_pr_info(),
             &entry_pattern,
             EntrySeparator::DOUBLE_LF,
             DuplicateEntryStrategy::Overwrite,
@@ -1520,5 +1519,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
         let expect = "# Changelog\n\n## [Unreleased]\n\n### Dependencies\n\n- `serde`: 1.0.214 → 1.0.216 ([#1](https://github.com/user/repo/pull/1))\n\n## [0.1.0]\n";
         assert_str_eq!(&changelog_content, expect);
+    }
+
+    #[test]
+    fn test_add_changes_capacity_repeated_pr_tokens_and_long_url() {
+        let mut changelog_content = EXAMPLE_SMALL_CHANGELOG_CONTENTS.to_owned();
+        let changes = vec![
+            DependabotChange::new("serde", "1.0.215", "1.0.216"),
+            DependabotChange::new("chrono", "0.4.38", "0.4.39"),
+        ];
+        let pattern = r"`[dep]`: [old] → [new] ([pr-link]) ref [pr-number] at [pr-url]";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        assert_eq!(entry_pattern.pull_request_link_token_occurrences(), 1);
+        assert_eq!(entry_pattern.pull_request_number_token_occurrences(), 1);
+        assert_eq!(entry_pattern.pull_request_url_token_occurrences(), 1);
+
+        let long_url = format!(
+            "https://github.com/organization-with-a-very-long-name/repository-with-a-very-long-name/pull/{}",
+            "9".repeat(20)
+        );
+        let pr_info = PullRequestInfo::new("99999999999999999999", &long_url);
+        let version_header = VersionHeader::new("Unreleased".into());
+        let section_header = "Dependencies";
+
+        add_changes_to_changelog_contents(
+            changes,
+            &mut changelog_content,
+            &pr_info,
+            &entry_pattern,
+            EntrySeparator::default(),
+            DuplicateEntryStrategy::Append,
+            &version_header,
+            section_header,
+        );
+
+        // Calling add_changes_to_changelog_contents exercises the internal debug_assert_eq!
+        // that asserts `change_log_str_capacity == changelog_content.capacity()`.
+        // If the PR tokens were not properly accounted for in the capacity calculation,
+        // inserting the formatted changes (with repeated long PR tokens exceeding the 128-byte
+        // buffer) would reallocate and trigger the assertion failure.
+        assert!(changelog_content.contains(&long_url));
+        assert!(changelog_content.contains("ref 99999999999999999999 at"));
     }
 }

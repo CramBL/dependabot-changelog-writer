@@ -9,6 +9,8 @@ pub struct EntryPattern {
     // The length of the pattern string minus the tokens
     min_len: usize,
     pr_link_token_occurrences: usize,
+    pr_number_token_occurrences: usize,
+    pr_url_token_occurrences: usize,
 }
 
 impl Default for EntryPattern {
@@ -76,8 +78,9 @@ impl EntryPattern {
 
         let ordered_tokens = [dep_token, Self::OLD_VERSION_TOKEN, Self::NEW_VERSION_TOKEN];
 
-        let pr_link_token_occurrences = pattern.matches(Self::PULL_REQUEST_LINK_TOKEN).count()
-            + pattern.matches(Self::PULL_REQUEST_URL_TOKEN).count();
+        let pr_link_token_occurrences = pattern.matches(Self::PULL_REQUEST_LINK_TOKEN).count();
+        let pr_number_token_occurrences = pattern.matches(Self::PULL_REQUEST_NUMBER_TOKEN).count();
+        let pr_url_token_occurrences = pattern.matches(Self::PULL_REQUEST_URL_TOKEN).count();
 
         let mut last_index = 0;
 
@@ -147,6 +150,8 @@ impl EntryPattern {
             cooked_pattern,
             min_len,
             pr_link_token_occurrences,
+            pr_number_token_occurrences,
+            pr_url_token_occurrences,
         })
     }
 
@@ -160,20 +165,17 @@ impl EntryPattern {
         self.pr_link_token_occurrences
     }
 
-    pub fn format_change(
-        &self,
-        change: &DependabotChange,
-        markdown_pull_request_link: &str,
-    ) -> String {
-        let pr_info = PullRequestInfo::from_markdown_link(markdown_pull_request_link);
-        self.format_change_with_pr_info(change, &pr_info)
+    /// How many times was the [PULL_REQUEST_NUMBER_TOKEN](Self::PULL_REQUEST_NUMBER_TOKEN) found in the pattern
+    pub fn pull_request_number_token_occurrences(&self) -> usize {
+        self.pr_number_token_occurrences
     }
 
-    pub fn format_change_with_pr_info(
-        &self,
-        change: &DependabotChange,
-        pr_info: &PullRequestInfo,
-    ) -> String {
+    /// How many times was the [PULL_REQUEST_URL_TOKEN](Self::PULL_REQUEST_URL_TOKEN) found in the pattern
+    pub fn pull_request_url_token_occurrences(&self) -> usize {
+        self.pr_url_token_occurrences
+    }
+
+    pub fn format_change(&self, change: &DependabotChange, pr_info: &PullRequestInfo) -> String {
         let mut formatted = self.cooked_pattern.clone();
 
         if let Some(dep_url) = change.dep_url() {
@@ -212,15 +214,18 @@ impl EntryPattern {
             formatted = formatted.replace(Self::DEPENDENCY_URL_TOKEN_HARDENED, "");
         }
 
+        if self.pr_link_token_occurrences > 0 {
+            formatted = formatted.replace(
+                Self::PULL_REQUEST_LINK_TOKEN_HARDENED,
+                &pr_info.markdown_link(),
+            );
+        }
+
         formatted
             .replace(Self::DEPENDENCY_NAME_TOKEN_HARDENED, change.dep_name())
             .replace(Self::DEPENDENCY_TOKEN_HARDENED, change.name)
             .replace(Self::OLD_VERSION_TOKEN_HARDENED, change.old_version())
             .replace(Self::NEW_VERSION_TOKEN_HARDENED, change.new_version)
-            .replace(
-                Self::PULL_REQUEST_LINK_TOKEN_HARDENED,
-                &pr_info.markdown_link,
-            )
             .replace(Self::PULL_REQUEST_NUMBER_TOKEN_HARDENED, &pr_info.number)
             .replace(Self::PULL_REQUEST_URL_TOKEN_HARDENED, &pr_info.url)
     }
@@ -234,7 +239,7 @@ impl EntryPattern {
         pr_info: &PullRequestInfo,
     ) -> String {
         let change = DependabotChange::new(dependency, old_version, new_version);
-        self.format_change_with_pr_info(&change, pr_info)
+        self.format_change(&change, pr_info)
     }
 }
 
@@ -296,6 +301,18 @@ mod tests {
             "- {{pr-link}} bumps {{dep}} from {{old}} to {{new}} ({{pr-link}})\n"
         );
         assert_eq!(entry_pattern.min_len(), "-  bumps  from  to  ()\n".len());
+        assert_eq!(entry_pattern.pull_request_link_token_occurrences(), 2);
+        assert_eq!(entry_pattern.pull_request_number_token_occurrences(), 0);
+        assert_eq!(entry_pattern.pull_request_url_token_occurrences(), 0);
+    }
+
+    #[test]
+    fn test_valid_pattern_multiple_pr_tokens() {
+        let pattern = "[pr-link] Bump [dep] from [old] to [new] ([#[pr-number]]([pr-url])) ref [pr-number] at [pr-url]";
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        assert_eq!(entry_pattern.pull_request_link_token_occurrences(), 1);
+        assert_eq!(entry_pattern.pull_request_number_token_occurrences(), 2);
+        assert_eq!(entry_pattern.pull_request_url_token_occurrences(), 2);
     }
 
     #[test]
@@ -357,8 +374,8 @@ mod tests {
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         let change = DependabotChange::new("actions/checkout", "3", "4")
             .with_url("https://github.com/actions/checkout");
-        let formatted =
-            entry_pattern.format_change(&change, "[#1](https://github.com/user/repo/pull/1)");
+        let pr_info = PullRequestInfo::new("1", "https://github.com/user/repo/pull/1");
+        let formatted = entry_pattern.format_change(&change, &pr_info);
         assert_str_eq!(
             formatted,
             "- [`actions/checkout`](https://github.com/actions/checkout): 3 → 4 ([#1](https://github.com/user/repo/pull/1))\n"
@@ -369,11 +386,7 @@ mod tests {
     fn test_pr_number_and_pr_url_tokens() {
         let pattern = "Bump [dep] from [old] to [new] ([#[pr-number]]([pr-url]))";
         let entry_pattern = EntryPattern::new(pattern).unwrap();
-        let pr_info = PullRequestInfo::new(
-            "867",
-            "https://github.com/example/repo/pull/867",
-            "[#867](https://github.com/example/repo/pull/867)",
-        );
+        let pr_info = PullRequestInfo::new("867", "https://github.com/example/repo/pull/867");
         let formatted = entry_pattern.format_with_pr_info("serde", "1.0.0", "1.0.1", &pr_info);
         assert_str_eq!(
             formatted,
@@ -386,8 +399,8 @@ mod tests {
         let pattern = "[`[dep-name]`]([dep-url]): [old] → [new]";
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         let change = DependabotChange::new("ubi9/ubi", "9.4", "9.5");
-        let formatted =
-            entry_pattern.format_change(&change, "[#1](https://github.com/user/repo/pull/1)");
+        let pr_info = PullRequestInfo::new("1", "https://github.com/user/repo/pull/1");
+        let formatted = entry_pattern.format_change(&change, &pr_info);
         assert_str_eq!(formatted, "- `ubi9/ubi`: 9.4 → 9.5\n");
     }
 
@@ -396,8 +409,8 @@ mod tests {
         let pattern = "[`[dep-name]`]([dep-url]): [old] → [new]";
         let entry_pattern = EntryPattern::new(pattern).unwrap();
         let change = DependabotChange::from_str("[some-submodule](https://github.com/updates-org/some-submodule) from `b0c35f6` to `c8bd600`").unwrap();
-        let formatted =
-            entry_pattern.format_change(&change, "[#1](https://github.com/user/repo/pull/1)");
+        let pr_info = PullRequestInfo::new("1", "https://github.com/user/repo/pull/1");
+        let formatted = entry_pattern.format_change(&change, &pr_info);
         assert_str_eq!(
             formatted,
             "- [`some-submodule`](https://github.com/updates-org/some-submodule): `b0c35f6` → `c8bd600`\n"
@@ -430,15 +443,24 @@ mod tests {
     fn test_pr_number_escaped_hash() {
         let pattern = r"[\#[pr-number]]([pr-url]): [dep] [old] → [new]";
         let entry_pattern = EntryPattern::new(pattern).unwrap();
-        let pr_info = PullRequestInfo::new(
-            "867",
-            "https://github.com/example/repo/pull/867",
-            "[#867](https://github.com/example/repo/pull/867)",
-        );
+        let pr_info = PullRequestInfo::new("867", "https://github.com/example/repo/pull/867");
         let formatted = entry_pattern.format_with_pr_info("serde", "1.0.0", "1.0.1", &pr_info);
         assert_str_eq!(
             formatted,
             "- [\\#867](https://github.com/example/repo/pull/867): serde 1.0.0 → 1.0.1\n"
+        );
+    }
+
+    #[test]
+    fn test_format_change_pr_info() {
+        let pattern = EntryPattern::DEFAULT_PATTERN;
+        let entry_pattern = EntryPattern::new(pattern).unwrap();
+        let change = DependabotChange::new("serde", "1.0.0", "1.0.1");
+        let pr_info = PullRequestInfo::new("42", "https://github.com/org/repo/pull/42");
+        let formatted = entry_pattern.format_change(&change, &pr_info);
+        assert_str_eq!(
+            formatted,
+            "- `serde`: 1.0.0 → 1.0.1 ([#42](https://github.com/org/repo/pull/42))\n"
         );
     }
 }
