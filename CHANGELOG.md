@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0]
+
+### Added
+
+- Add `entry-separator` action input to configure spacing between changelog entries (supports `\n`, `\n\n`, `\r\n`, and `\r\n\r\n`; defaults to `\n`), see the [README](./README.md) for details ([#139](https://github.com/CramBL/dependabot-changelog-writer/pull/139)).
+- Add `[pr-number]` and `[pr-url]` pattern tokens as an alternative to `[pr-link]`, enabling custom pull request links such as `[\#[pr-number]]([pr-url])` ([#140](https://github.com/CramBL/dependabot-changelog-writer/pull/140)).
+- Add `[dep-name]` and `[dep-url]` pattern tokens as an alternative to `[dep]`, enabling custom dependency links such as `` [`[dep-name]`]([dep-url]) `` with graceful fallback when a dependency URL is unavailable ([#141](https://github.com/CramBL/dependabot-changelog-writer/pull/141)).
+
 ### Dependencies
 
+- `cargo update`
+- `env_logger`: 0.11.10 → 0.11.12
 - `actions/upload-artifact`: 4 → 5 ([#105](https://github.com/CramBL/dependabot-changelog-writer/pull/105))
 - `actions/download-artifact`: 5 → 6 ([#105](https://github.com/CramBL/dependabot-changelog-writer/pull/105))
 - `actions/checkout`: 5 → 6 ([#107](https://github.com/CramBL/dependabot-changelog-writer/pull/107))
